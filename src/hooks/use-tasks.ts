@@ -56,6 +56,12 @@ export function useTasks() {
     ]);
   }, []);
 
+  const updateTask = useCallback((id: string, updates: Partial<Task>) => {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === id ? { ...task, ...updates } : task))
+    );
+  }, []);
+
   const deleteTask = useCallback((id: string) => {
     setTasks((prev) => prev.filter((task) => task.id !== id));
   }, []);
@@ -85,6 +91,7 @@ export function useTasks() {
     tasks,
     sortedTasks,
     addTask,
+    updateTask,
     deleteTask,
     toggleTask,
   };
