@@ -461,7 +461,7 @@ export default function AdminPage() {
       )}
 
       {/* Active Members List for Operators (no passwords, no delete) */}
-      {isOperator && !isAdmin && (
+      {isOperator && (
         <SectionCard title={t('admin.activeMembers')}>
           <div className="space-y-3">
             {users.length === 0 ? (
