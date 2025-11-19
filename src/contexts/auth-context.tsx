@@ -56,10 +56,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       writeJSON(USERS_STORAGE_KEY, mergedUsers);
     }
 
-    // Check for saved session
-    const savedAuth = readJSON<{ user: User } | null>(AUTH_STORAGE_KEY, null);
-    if (savedAuth?.user) {
-      setUser(savedAuth.user);
+    // Check for saved session - restore user immediately
+    try {
+      const savedAuth = readJSON<{ user: User } | null>(AUTH_STORAGE_KEY, null);
+      
+      if (savedAuth?.user) {
+        // Verify user still exists in users list
+        const allUsers = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, mergedUsers);
+        const userStillExists = allUsers.some(u => u.id === savedAuth.user.id && u.email === savedAuth.user.email);
+        
+        if (userStillExists) {
+          setUser(savedAuth.user);
+        } else {
+          // User no longer exists, clear auth
+          writeJSON(AUTH_STORAGE_KEY, null);
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring session:', error);
+      // Clear corrupted auth data
+      try {
+        writeJSON(AUTH_STORAGE_KEY, null);
+      } catch {
+        // Ignore
+      }
     }
   }, []);
 
