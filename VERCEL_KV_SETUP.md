@@ -29,19 +29,23 @@ After creating the KV database:
 1. Click on your KV database
 2. Go to the **.env.local** tab or **Settings**
 3. Copy the following environment variables:
-   - `KV_REST_API_URL`
-   - `KV_REST_API_TOKEN`
+   - `KV_REST_API_URL` (or `UPSTASH_REDIS_REST_URL`)
+   - `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_TOKEN`)
+
+**Note**: The app supports both Vercel KV and Upstash Redis variable names.
 
 ### Step 3: Add Environment Variables to Vercel
 
 1. In your Vercel project, go to **Settings** → **Environment Variables**
 2. Add the following variables:
-   - **Key**: `KV_REST_API_URL`
+   - **Key**: `UPSTASH_REDIS_REST_URL` (or `KV_REST_API_URL`)
      **Value**: (paste from Step 2)
-   - **Key**: `KV_REST_API_TOKEN`
+   - **Key**: `UPSTASH_REDIS_REST_TOKEN` (or `KV_REST_API_TOKEN`)
      **Value**: (paste from Step 2)
 3. Make sure to select **Production**, **Preview**, and **Development** environments
 4. Click **Save**
+
+**Note**: The app will automatically detect either variable name format.
 
 ### Step 4: Redeploy
 

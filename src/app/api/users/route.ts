@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Optional KV import - only use if configured
+// Supports both Vercel KV and Upstash Redis variable names
 let kv: any = null;
 try {
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  
+  if (kvUrl && kvToken) {
     kv = require('@vercel/kv').kv;
   }
 } catch (error) {
@@ -36,7 +40,10 @@ const USERS_KEY = 'schulplaner:users';
 // Get users from KV store (or return defaults if KV not configured)
 async function getUsers(): Promise<User[]> {
   // If KV is not configured, return defaults
-  if (!kv || !process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  
+  if (!kv || !kvUrl || !kvToken) {
     return DEFAULT_USERS;
   }
 
@@ -58,7 +65,10 @@ async function getUsers(): Promise<User[]> {
 // Save users to KV store (silently fails if KV not configured)
 async function saveUsers(users: User[]): Promise<void> {
   // If KV is not configured, silently skip (localStorage will handle it)
-  if (!kv || !process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  
+  if (!kv || !kvUrl || !kvToken) {
     return;
   }
 

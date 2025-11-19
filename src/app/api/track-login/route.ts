@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Optional KV import - only use if configured
+// Supports both Vercel KV and Upstash Redis variable names
 let kv: any = null;
 try {
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  
+  if (kvUrl && kvToken) {
     kv = require('@vercel/kv').kv;
   }
 } catch (error) {
@@ -40,7 +44,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Get users from KV or return (if not configured, client-side will handle it)
-    if (!kv || !process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    
+    if (!kv || !kvUrl || !kvToken) {
       // KV not configured - return success but don't track (localStorage will handle it)
       return NextResponse.json({ success: true, message: 'KV not configured, using localStorage' });
     }
