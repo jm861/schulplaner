@@ -24,11 +24,16 @@ class UpstashClient {
     }
 
     try {
-      const response = await fetch(`${this.url}/get/${encodeURIComponent(key)}`, {
-        method: 'GET',
+      // Upstash REST API uses POST with command in body
+      const response = await fetch(this.url, {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          command: ['GET', key],
+        }),
       });
 
       if (!response.ok) {
@@ -62,16 +67,19 @@ class UpstashClient {
     }
 
     try {
-      // Upstash REST API expects the value to be JSON stringified
+      // Upstash REST API uses POST with command in body
+      // Value must be JSON stringified
       const jsonValue = JSON.stringify(value);
       
-      const response = await fetch(`${this.url}/set/${encodeURIComponent(key)}`, {
+      const response = await fetch(this.url, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.token}`,
           'Content-Type': 'application/json',
         },
-        body: jsonValue,
+        body: JSON.stringify({
+          command: ['SET', key, jsonValue],
+        }),
       });
 
       if (!response.ok) {
@@ -92,14 +100,21 @@ class UpstashClient {
     }
 
     try {
-      const response = await fetch(`${this.url}/del/${encodeURIComponent(key)}`, {
+      // Upstash REST API uses POST with command in body
+      const response = await fetch(this.url, {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          command: ['DEL', key],
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Upstash API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Upstash API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       await response.json();
