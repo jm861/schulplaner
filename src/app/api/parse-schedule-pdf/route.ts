@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+// Dynamic import for pdfjs to handle serverless environment
+let pdfjsLib: any;
 
 type ParsedClass = {
   time: string;
@@ -40,19 +42,46 @@ export async function POST(req: NextRequest) {
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     
-    // Parse PDF using pdfjs
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
+    // Dynamically import pdfjs (required for serverless)
+    if (!pdfjsLib) {
+      pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    }
     
-    // Extract text from all pages
+    // Parse PDF using pdfjs
     let text = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      text += pageText + '\n';
+    try {
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      
+      // Extract text from all pages
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => (item.str || '').trim())
+          .filter((str: string) => str.length > 0)
+          .join(' ');
+        text += pageText + '\n';
+      }
+    } catch (pdfError) {
+      console.error('[parse-schedule-pdf] PDF parsing error:', pdfError);
+      // Return error with more details
+      return NextResponse.json(
+        { 
+          error: 'Failed to parse PDF. The file might be corrupted or in an unsupported format.',
+          details: pdfError instanceof Error ? pdfError.message : 'Unknown error'
+        },
+        { status: 400 }
+      );
+    }
+    
+    if (!text || text.trim().length === 0) {
+      return NextResponse.json(
+        { 
+          error: 'Could not extract text from PDF. The PDF might be image-based or protected.',
+        },
+        { status: 400 }
+      );
     }
 
     // Parse the text to extract schedule information
