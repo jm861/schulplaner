@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 import { useLanguage } from '@/contexts/language-context';
 import { useSchedule, type ClassSession } from '@/hooks/use-schedule';
 import { inputStyles, subtleButtonStyles } from '@/styles/theme';
+import { PDFUploader } from './pdf-uploader';
 
 type ScheduleEditorProps = {
   onClose: () => void;
@@ -14,6 +15,7 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
   const { t } = useLanguage();
   const { classes, addClass, updateClass, deleteClass } = useSchedule();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showPDFUploader, setShowPDFUploader] = useState(false);
   const [formData, setFormData] = useState({
     time: '',
     subject: '',
@@ -48,6 +50,26 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
     setFormData({ time: '', subject: '', room: '' });
   }
 
+  if (showPDFUploader) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            PDF importieren
+          </h3>
+          <button
+            type="button"
+            onClick={() => setShowPDFUploader(false)}
+            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+        <PDFUploader onClose={() => setShowPDFUploader(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -60,6 +82,22 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
           className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
         >
           ✕
+        </button>
+      </div>
+
+      <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-800 dark:bg-indigo-950/50">
+        <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-100 mb-2">
+          Stundenplan aus PDF importieren
+        </p>
+        <p className="text-xs text-indigo-700 dark:text-indigo-300 mb-3">
+          Lade deinen offiziellen Stundenplan als PDF hoch und die App fügt automatisch alle Klassen hinzu.
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowPDFUploader(true)}
+          className={`${subtleButtonStyles} w-full border-indigo-300 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:border-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200 dark:hover:bg-indigo-800/50`}
+        >
+          PDF hochladen
         </button>
       </div>
 
