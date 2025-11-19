@@ -155,6 +155,8 @@ export const translations = {
     'common.cancel': 'Cancel',
     'common.save': 'Save',
     'common.add': 'Add',
+    'common.goodMorning': 'Good morning',
+    'common.goodEvening': 'Good evening',
     
     // Auth
     'auth.loginTitle': 'Sign in to your account',
@@ -449,6 +451,8 @@ export const translations = {
     'common.cancel': 'Abbrechen',
     'common.save': 'Speichern',
     'common.add': 'Hinzufügen',
+    'common.goodMorning': 'Guten Morgen',
+    'common.goodEvening': 'Guten Abend',
     
     // Auth
     'auth.loginTitle': 'Bei deinem Konto anmelden',

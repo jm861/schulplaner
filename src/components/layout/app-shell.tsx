@@ -1,12 +1,13 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 
 import { MainNav } from '@/components/navigation/main-nav';
 import { BottomNav } from '@/components/navigation/bottom-nav';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
+import { readJSON } from '@/lib/storage';
 import { navLinks } from '@/lib/nav';
 
 type AppShellProps = {
@@ -18,12 +19,39 @@ const PUBLIC_ROUTES = ['/login', '/register'];
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
-      const { isAdmin, isOperator } = useAuth();
+  const { user, isAdmin, isOperator } = useAuth();
   const today = new Intl.DateTimeFormat('de-DE', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   }).format(new Date());
+
+  // Get user's name from settings or user data
+  const userName = useMemo(() => {
+    if (!user) return null;
+    
+    try {
+      // Try to get name from settings first
+      const settings = readJSON<{ profile?: { name?: string } }>('schulplaner:settings', {});
+      if (settings.profile?.name) {
+        return settings.profile.name;
+      }
+      
+      // Fallback to user data
+      const users = readJSON<Array<{ id: string; name?: string }>>('schulplaner:users', []);
+      const currentUser = users.find(u => u.id === user.id);
+      return currentUser?.name || user.name || null;
+    } catch {
+      return user.name || null;
+    }
+  }, [user]);
+
+  // Determine greeting based on time of day
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    const isMorning = hour >= 5 && hour < 18; // 5 AM to 6 PM is morning/day
+    return isMorning ? t('common.goodMorning') : t('common.goodEvening');
+  }, [t]);
 
   // For public routes like login, render children directly without shell
   if (PUBLIC_ROUTES.includes(pathname)) {
@@ -39,7 +67,9 @@ export function AppShell({ children }: AppShellProps) {
               Schulplaner
             </p>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">Daily Flow</h1>
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
+                {userName ? `${greeting}, ${userName}` : 'Daily Flow'}
+              </h1>
               <p className="text-xs text-slate-500 sm:text-sm">{today}</p>
             </div>
           </div>
