@@ -32,29 +32,29 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-[100rem] flex-col gap-12 px-4 py-8 sm:px-8 lg:px-20 xl:px-24 2xl:px-28 lg:py-16">
-        <header className="flex flex-col gap-6 rounded-[36px] border border-slate-200/80 bg-white/90 p-8 shadow-[0_30px_60px_-35px_rgba(15,23,42,0.75)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">
+      <div className="mx-auto flex min-h-screen w-full max-w-[100rem] flex-col gap-6 px-3 py-4 pb-20 sm:gap-8 sm:px-6 sm:py-6 sm:pb-8 md:gap-10 md:px-8 md:py-8 md:pb-8 lg:gap-12 lg:px-20 xl:px-24 2xl:px-28 lg:py-16">
+        <header className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-lg backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80 sm:gap-5 sm:rounded-3xl sm:p-6 md:flex-row md:items-center md:justify-between md:gap-6 md:rounded-[36px] md:p-8 md:shadow-[0_30px_60px_-35px_rgba(15,23,42,0.75)]">
+          <div className="flex flex-col gap-1.5 sm:gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-xs sm:tracking-[0.4em]">
               Schulplaner
             </p>
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight">Daily Flow</h1>
-              <p className="text-sm text-slate-500">{today}</p>
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">Daily Flow</h1>
+              <p className="text-xs text-slate-500 sm:text-sm">{today}</p>
             </div>
           </div>
           <MainNav className="hidden md:flex" />
         </header>
 
-        <section className="grid gap-4 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        <section className="grid grid-cols-2 gap-2.5 text-xs text-slate-600 dark:text-slate-300 sm:gap-3 sm:text-sm sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="rounded-3xl border border-slate-200 bg-white/60 px-5 py-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-indigo-500/40"
+              className="rounded-2xl border border-slate-200 bg-white/60 px-3 py-3 shadow-sm backdrop-blur transition active:scale-95 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-indigo-500/40 sm:rounded-3xl sm:px-4 sm:py-3.5 md:px-5 md:py-4"
             >
-              <p className="font-medium text-slate-900 dark:text-white">{t(link.labelKey)}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{t(link.descriptionKey)}</p>
+              <p className="font-medium text-slate-900 dark:text-white text-[11px] leading-tight sm:text-sm">{t(link.labelKey)}</p>
+              <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5 sm:text-xs sm:mt-1">{t(link.descriptionKey)}</p>
             </a>
           ))}
           {(isAdmin || isOperator) && (
@@ -76,7 +76,7 @@ export function AppShell({ children }: AppShellProps) {
           )}
         </section>
 
-        <main className="flex-1 rounded-[36px] border border-slate-200/70 bg-white/95 p-8 shadow-[0_30px_60px_-45px_rgba(15,23,42,0.8)] backdrop-blur xl:p-16 dark:border-slate-800 dark:bg-slate-900/80 md:p-12">
+        <main className="flex-1 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 sm:rounded-3xl sm:p-6 md:rounded-[36px] md:p-8 md:shadow-[0_30px_60px_-45px_rgba(15,23,42,0.8)] xl:p-16">
           {children}
         </main>
       </div>

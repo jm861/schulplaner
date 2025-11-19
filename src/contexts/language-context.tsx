@@ -18,10 +18,10 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     try {
-      const saved = readJSON<Language>(LANGUAGE_STORAGE_KEY, 'en');
-      return saved === 'en' || saved === 'de' ? saved : 'en';
+      const saved = readJSON<Language>(LANGUAGE_STORAGE_KEY, 'de');
+      return saved === 'en' || saved === 'de' ? saved : 'de';
     } catch {
-      return 'en';
+      return 'de';
     }
   });
 

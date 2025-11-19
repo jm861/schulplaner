@@ -11,8 +11,8 @@ export function BottomNav() {
   const { t } = useLanguage();
 
   return (
-    <nav className="fixed inset-x-0 bottom-4 z-50 mx-auto w-[calc(100%-2rem)] max-w-xl rounded-3xl border border-slate-200 bg-white/90 px-4 py-3 text-xs font-medium text-slate-600 shadow-xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 md:hidden">
-      <ul className="flex items-center justify-between gap-2">
+    <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border-t border-slate-200 bg-white/95 px-2 py-2 text-[10px] font-medium text-slate-600 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200 md:hidden safe-area-inset-bottom">
+      <ul className="flex items-center justify-between gap-1">
         {navLinks.map((link) => {
           const isActive =
             link.href === '/'
@@ -23,20 +23,20 @@ export function BottomNav() {
             <li key={link.href} className="flex-1">
               <Link
                 href={link.href}
-                className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-1 transition ${
+                className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 transition active:scale-95 min-h-[60px] justify-center ${
                   isActive
-                    ? 'text-slate-900 dark:text-white'
+                    ? 'text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800'
                     : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
                 <span
-                  className={`h-1 w-full rounded-full transition ${
+                  className={`h-1 w-8 rounded-full transition ${
                     isActive
-                      ? 'bg-slate-900 dark:bg-white'
+                      ? 'bg-indigo-600 dark:bg-indigo-400'
                       : 'bg-transparent'
                   }`}
                 />
-                <span>{t(link.labelKey)}</span>
+                <span className="text-[10px] leading-tight text-center">{t(link.labelKey)}</span>
               </Link>
             </li>
           );
