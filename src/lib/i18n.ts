@@ -208,6 +208,12 @@ export const translations = {
     'admin.noUsers': 'No users found',
     'admin.roleAdmin': 'Admin',
     'admin.roleUser': 'User',
+    'admin.password': 'Password',
+    'admin.showPassword': 'Show',
+    'admin.hidePassword': 'Hide',
+    'admin.delete': 'Delete',
+    'admin.confirmDelete': 'Are you sure you want to delete {email}?',
+    'admin.cannotDeleteSelf': 'You cannot delete your own account',
     
     // Calendar
     'calendar.title': 'Weekly Calendar',
@@ -459,6 +465,12 @@ export const translations = {
     'admin.noUsers': 'Keine Benutzer gefunden',
     'admin.roleAdmin': 'Admin',
     'admin.roleUser': 'Benutzer',
+    'admin.password': 'Passwort',
+    'admin.showPassword': 'Anzeigen',
+    'admin.hidePassword': 'Verbergen',
+    'admin.delete': 'Löschen',
+    'admin.confirmDelete': 'Bist du sicher, dass du {email} löschen möchtest?',
+    'admin.cannotDeleteSelf': 'Du kannst dein eigenes Konto nicht löschen',
     
     // Calendar
     'calendar.title': 'Wochenkalender',

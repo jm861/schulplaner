@@ -58,38 +58,27 @@ export default function RegisterPage() {
         return;
       }
 
-      // Send verification code
-      const verifyResponse = await fetch('/api/send-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: formData.email }),
-      });
-
-      if (!verifyResponse.ok) {
-        const data = await verifyResponse.json();
-        setError(data.error || t('auth.verificationSendFailed'));
-        setIsLoading(false);
-        return;
-      }
-
-      // Store user data temporarily (will be saved after verification)
-      const tempUserData = {
+      // Create new user
+      const newUser: User = {
         id: crypto.randomUUID(),
         email: formData.email,
         name: formData.name,
+        role: 'user',
         password: formData.password,
-        role: 'user' as const,
       };
 
-      // Store in sessionStorage for after verification
-      sessionStorage.setItem('pendingUser', JSON.stringify(tempUserData));
+      users.push(newUser);
+      writeJSON(USERS_STORAGE_KEY, users);
 
+      // Auto-login the new user
+      const success = await login(formData.email, formData.password);
       setIsLoading(false);
-      
-      // Redirect to verification page
-      router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
+
+      if (success) {
+        router.push('/onboarding');
+      } else {
+        setError(t('auth.registrationFailed'));
+      }
     } catch (error) {
       setIsLoading(false);
       setError(t('auth.registrationFailed'));
