@@ -61,12 +61,50 @@ export default function SettingsPage() {
       if (!saved.profile) saved.profile = DEFAULT_SETTINGS.profile;
       if (!saved.notifications) saved.notifications = DEFAULT_SETTINGS.notifications;
       if (!saved.ai) saved.ai = DEFAULT_SETTINGS.ai;
+      
+      // Sync with user data from registration/welcome page if available
+      const users = readJSON<Array<{ id: string; name?: string; class?: string; yearBorn?: string }>>('schulplaner:users', []);
+      const currentUser = users.find(u => u.id === user?.id) || user;
+      
+      if (currentUser) {
+        // Update profile with user data if it exists and settings haven't been customized
+        if (currentUser.name && (!saved.profile.name || saved.profile.name === DEFAULT_SETTINGS.profile.name)) {
+          saved.profile.name = currentUser.name;
+        }
+        if (currentUser.class && (!saved.profile.grade || saved.profile.grade === DEFAULT_SETTINGS.profile.grade)) {
+          saved.profile.grade = currentUser.class;
+        }
+      }
+      
       return saved;
     } catch (error) {
       console.error('Error loading settings:', error);
       return DEFAULT_SETTINGS;
     }
   });
+
+  // Sync settings with user data when user changes
+  useEffect(() => {
+    if (user) {
+      const users = readJSON<Array<{ id: string; name?: string; class?: string; yearBorn?: string }>>('schulplaner:users', []);
+      const currentUser = users.find(u => u.id === user.id) || user;
+      
+      if (currentUser) {
+        setSettings((prev) => {
+          const updated = { ...prev };
+          // Update name if user has a name and it's different
+          if (currentUser.name && currentUser.name !== prev.profile.name) {
+            updated.profile = { ...updated.profile, name: currentUser.name };
+          }
+          // Update grade/class if user has a class and it's different
+          if (currentUser.class && currentUser.class !== prev.profile.grade) {
+            updated.profile = { ...updated.profile, grade: currentUser.class };
+          }
+          return updated;
+        });
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     writeJSON(SETTINGS_STORAGE_KEY, settings);
@@ -110,31 +148,31 @@ export default function SettingsPage() {
         description={t('settings.description')}
       />
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
         <SectionCard title={t('settings.profile')}>
           <form className="space-y-4 text-sm">
-            <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700 dark:text-slate-200">Full name</span>
+            <label className="flex flex-col gap-1.5 sm:gap-2">
+              <span className="font-medium text-slate-700 dark:text-slate-200 text-sm sm:text-base">Full name</span>
               <input
-                className={inputStyles}
+                className={`${inputStyles} text-sm sm:text-base`}
                 value={settings.profile.name}
                 onChange={(event) => updateProfile('name', event.target.value)}
                 placeholder="e.g., Lina Schneider"
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700 dark:text-slate-200">Grade / Year</span>
+            <label className="flex flex-col gap-1.5 sm:gap-2">
+              <span className="font-medium text-slate-700 dark:text-slate-200 text-sm sm:text-base">Grade / Year</span>
               <input
-                className={inputStyles}
+                className={`${inputStyles} text-sm sm:text-base`}
                 value={settings.profile.grade}
                 onChange={(event) => updateProfile('grade', event.target.value)}
                 placeholder="11"
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-medium text-slate-700 dark:text-slate-200">Home timezone</span>
+            <label className="flex flex-col gap-1.5 sm:gap-2">
+              <span className="font-medium text-slate-700 dark:text-slate-200 text-sm sm:text-base">Home timezone</span>
               <select
-                className={selectStyles}
+                className={`${selectStyles} text-sm sm:text-base`}
                 value={settings.profile.timezone}
                 onChange={(event) => updateProfile('timezone', event.target.value)}
               >
