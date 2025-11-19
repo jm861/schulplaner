@@ -1,21 +1,26 @@
-// Upstash Redis REST API client
+// Upstash Redis client using official @upstash/redis package
 // Works with both UPSTASH_REDIS_REST_URL/TOKEN and KV_REST_API_URL/TOKEN
 
-type UpstashResponse<T> = {
-  result: T;
-};
+let redis: any = null;
+
+try {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  
+  if (url && token) {
+    const { Redis } = require('@upstash/redis');
+    redis = new Redis({
+      url,
+      token,
+    });
+  }
+} catch (error) {
+  console.error('[Upstash] Failed to initialize:', error);
+}
 
 class UpstashClient {
-  private url: string;
-  private token: string;
-
-  constructor() {
-    this.url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
-    this.token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
-  }
-
   isConfigured(): boolean {
-    return !!(this.url && this.token);
+    return redis !== null;
   }
 
   async get<T>(key: string): Promise<T | null> {
@@ -24,37 +29,19 @@ class UpstashClient {
     }
 
     try {
-      // Upstash REST API uses POST with command in body
-      const response = await fetch(this.url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          command: ['GET', key],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upstash API error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json() as UpstashResponse<T>;
-      // Upstash returns null if key doesn't exist
-      if (data.result === null) {
+      const result = await redis.get(key);
+      if (result === null) {
         return null;
       }
       // If result is a string, try to parse it as JSON
-      if (typeof data.result === 'string') {
+      if (typeof result === 'string') {
         try {
-          return JSON.parse(data.result) as T;
+          return JSON.parse(result) as T;
         } catch {
-          return data.result as T;
+          return result as T;
         }
       }
-      return data.result as T;
+      return result as T;
     } catch (error) {
       console.error('[Upstash] GET error:', error);
       throw error;
@@ -67,27 +54,8 @@ class UpstashClient {
     }
 
     try {
-      // Upstash REST API uses POST with command in body
-      // Value must be JSON stringified
-      const jsonValue = JSON.stringify(value);
-      
-      const response = await fetch(this.url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          command: ['SET', key, jsonValue],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upstash API error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      await response.json();
+      // @upstash/redis handles JSON serialization automatically
+      await redis.set(key, value);
     } catch (error) {
       console.error('[Upstash] SET error:', error);
       throw error;
@@ -100,24 +68,7 @@ class UpstashClient {
     }
 
     try {
-      // Upstash REST API uses POST with command in body
-      const response = await fetch(this.url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          command: ['DEL', key],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upstash API error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      await response.json();
+      await redis.del(key);
     } catch (error) {
       console.error('[Upstash] DEL error:', error);
       throw error;
