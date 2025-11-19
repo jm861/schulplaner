@@ -18,7 +18,7 @@ const PUBLIC_ROUTES = ['/login', '/register'];
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
-  const { isAdmin } = useAuth();
+      const { isAdmin, isOperator } = useAuth();
   const today = new Intl.DateTimeFormat('de-DE', {
     weekday: 'long',
     month: 'long',
@@ -57,13 +57,21 @@ export function AppShell({ children }: AppShellProps) {
               <p className="text-xs text-slate-500 dark:text-slate-400">{t(link.descriptionKey)}</p>
             </a>
           ))}
-          {isAdmin && (
+          {(isAdmin || isOperator) && (
             <a
               href="/admin"
-              className="rounded-3xl border border-indigo-200 bg-indigo-50/60 px-5 py-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/50 dark:hover:border-indigo-700"
+              className={`rounded-3xl border px-5 py-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 ${
+                isAdmin
+                  ? 'border-indigo-200 bg-indigo-50/60 hover:border-indigo-300 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/50 dark:hover:border-indigo-700'
+                  : 'border-amber-200 bg-amber-50/60 hover:border-amber-300 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:hover:border-amber-700'
+              }`}
             >
-              <p className="font-medium text-indigo-900 dark:text-indigo-100">Admin</p>
-              <p className="text-xs text-indigo-600 dark:text-indigo-400">Dashboard</p>
+              <p className={`font-medium ${isAdmin ? 'text-indigo-900 dark:text-indigo-100' : 'text-amber-900 dark:text-amber-100'}`}>
+                {isAdmin ? 'Admin' : 'Operator'}
+              </p>
+              <p className={`text-xs ${isAdmin ? 'text-indigo-600 dark:text-indigo-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                Dashboard
+              </p>
             </a>
           )}
         </section>

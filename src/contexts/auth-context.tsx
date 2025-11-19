@@ -9,7 +9,7 @@ type User = {
   id: string;
   email: string;
   name: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'operator';
 };
 
 type AuthContextType = {
@@ -18,6 +18,7 @@ type AuthContextType = {
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isOperator: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated: !!user,
         isAdmin: user?.role === 'admin',
+        isOperator: user?.role === 'operator' || user?.role === 'admin',
       }}
     >
       {children}
