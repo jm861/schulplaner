@@ -460,41 +460,105 @@ export default function AdminPage() {
         </SectionCard>
       )}
 
-      {/* Limited User List for Operators (no passwords, no delete) */}
+      {/* Active Members List for Operators (no passwords, no delete) */}
       {isOperator && !isAdmin && (
-        <SectionCard title={t('admin.allUsers')}>
+        <SectionCard title={t('admin.activeMembers')}>
           <div className="space-y-3">
             {users.length === 0 ? (
               <p className="text-sm text-slate-500 dark:text-slate-400">{t('admin.noUsers')}</p>
             ) : (
-              users.map((u) => (
-                <div
-                  key={u.id}
-                  className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{u.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
-                    </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        u.role === 'admin'
-                          ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200'
+              users.map((u) => {
+                const registeredDate = u.registeredAt
+                  ? new Date(u.registeredAt).toLocaleString('de-DE', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '';
+                const isRecentlyActive = u.lastLoginAt
+                  ? Date.now() - new Date(u.lastLoginAt).getTime() < 7 * 24 * 60 * 60 * 1000 // Active in last 7 days
+                  : false;
+
+                return (
+                  <div
+                    key={u.id}
+                    className={`rounded-2xl border px-4 py-3 ${
+                      isRecentlyActive
+                        ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/50'
+                        : 'border-slate-200 bg-white/70 dark:border-slate-800 dark:bg-slate-900/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">{u.name}</p>
+                          {isRecentlyActive && (
+                            <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-semibold text-white">
+                              {t('admin.active')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-600 dark:text-slate-300">
+                          {u.yearBorn && (
+                            <span>
+                              {t('admin.yearBorn')}: <strong>{u.yearBorn}</strong>
+                            </span>
+                          )}
+                          {u.class && (
+                            <span>
+                              {t('admin.class')}: <strong>{u.class}</strong>
+                            </span>
+                          )}
+                          {u.schoolForm && (
+                            <span>
+                              {t('admin.schoolForm')}: <strong>{u.schoolForm}</strong>
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 space-y-1 text-xs text-slate-400 dark:text-slate-500">
+                          {u.registeredAt && (
+                            <p>
+                              {t('admin.registeredAt')}: {registeredDate}
+                            </p>
+                          )}
+                          {u.lastLoginAt && (
+                            <p>
+                              {t('admin.lastLogin')}: {new Date(u.lastLoginAt).toLocaleString('de-DE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                              {u.loginCount && u.loginCount > 1 && (
+                                <span className="ml-2 text-slate-500">({u.loginCount}x)</span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          u.role === 'admin'
+                            ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200'
+                            : u.role === 'operator'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200'
+                              : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                        }`}
+                      >
+                        {u.role === 'admin'
+                          ? t('admin.roleAdmin')
                           : u.role === 'operator'
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200'
-                            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                      }`}
-                    >
-                      {u.role === 'admin'
-                        ? t('admin.roleAdmin')
-                        : u.role === 'operator'
-                          ? t('admin.roleOperator')
-                          : t('admin.roleUser')}
-                    </span>
+                            ? t('admin.roleOperator')
+                            : t('admin.roleUser')}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </SectionCard>

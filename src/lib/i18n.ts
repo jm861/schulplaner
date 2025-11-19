@@ -253,6 +253,8 @@ export const translations = {
     'admin.schoolForm': 'School Form',
     'admin.registeredAt': 'Registered',
     'admin.lastLogin': 'Last Login',
+    'admin.activeMembers': 'Active Members',
+    'admin.active': 'Active',
     
     // Calendar
     'calendar.title': 'Weekly Calendar',
@@ -549,6 +551,8 @@ export const translations = {
     'admin.schoolForm': 'Schulform',
     'admin.registeredAt': 'Registriert am',
     'admin.lastLogin': 'Letzter Login',
+    'admin.activeMembers': 'Aktive Mitglieder',
+    'admin.active': 'Aktiv',
     
     // Calendar
     'calendar.title': 'Wochenkalender',
