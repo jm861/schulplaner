@@ -53,35 +53,57 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const users = await (kv as any).get(USERS_KEY) as User[] | null;
+      let users = await (kv as any).get(USERS_KEY) as User[] | null;
       
-      if (users && Array.isArray(users)) {
-        const userIndex = users.findIndex((u) => u.id === userId || u.email === email);
-        
-        if (userIndex >= 0) {
-          const now = new Date().toISOString();
-          users[userIndex] = {
-            ...users[userIndex],
-            lastLoginAt: now,
-            loginCount: (users[userIndex].loginCount || 0) + 1,
-          };
-          
-          await (kv as any).set(USERS_KEY, users);
-          
-          return NextResponse.json({ 
-            success: true, 
-            lastLoginAt: now,
-            loginCount: users[userIndex].loginCount 
-          });
-        }
+      // Initialize empty array if KV is empty
+      if (!users || !Array.isArray(users)) {
+        users = [];
       }
+      
+      const userIndex = users.findIndex((u) => u.id === userId || u.email === email);
+      const now = new Date().toISOString();
+      
+      if (userIndex >= 0) {
+        // User exists - update login info
+        users[userIndex] = {
+          ...users[userIndex],
+          lastLoginAt: now,
+          loginCount: (users[userIndex].loginCount || 0) + 1,
+        };
+      } else {
+        // User not in KV yet - try to get from request body or create minimal entry
+        // This can happen if user was created in localStorage but not synced to KV
+        const newUser: User = {
+          id: userId,
+          email: email,
+          name: email.split('@')[0], // Fallback name
+          role: 'user',
+          password: '', // Password not available here
+          lastLoginAt: now,
+          loginCount: 1,
+        };
+        users.push(newUser);
+      }
+      
+      await (kv as any).set(USERS_KEY, users);
+      
+      const updatedUser = users.find((u) => u.id === userId || u.email === email);
+      
+      return NextResponse.json({ 
+        success: true, 
+        lastLoginAt: updatedUser?.lastLoginAt || now,
+        loginCount: updatedUser?.loginCount || 1,
+        synced: true
+      });
     } catch (kvError) {
       console.error('[track-login] KV error:', kvError);
       // Return success anyway - localStorage will handle it
-      return NextResponse.json({ success: true, message: 'KV error, using localStorage' });
+      return NextResponse.json({ 
+        success: true, 
+        message: 'KV error, using localStorage',
+        synced: false
+      });
     }
-
-    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[track-login] Error:', error);
     return NextResponse.json(

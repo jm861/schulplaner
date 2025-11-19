@@ -32,6 +32,25 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserWithPassword[]>([]);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [kvStatus, setKvStatus] = useState<{
+    configured: boolean;
+    connected: boolean;
+    message: string;
+    userCount?: number;
+  } | null>(null);
+
+  // Check KV/Upstash connection status
+  const checkKvStatus = async () => {
+    try {
+      const response = await fetch('/api/kv-status');
+      if (response.ok) {
+        const status = await response.json();
+        setKvStatus(status);
+      }
+    } catch (error) {
+      console.warn('Failed to check KV status:', error);
+    }
+  };
 
   // Load users and refresh periodically for live updates
   const loadUsers = async () => {
@@ -103,14 +122,23 @@ export default function AdminPage() {
       return;
     }
 
+    checkKvStatus();
     loadUsers();
 
-    // Refresh every 2 seconds to show live registrations
+    // Refresh every 2 seconds to show live registrations and login updates
     const interval = setInterval(() => {
       loadUsers();
     }, 2000);
 
-    return () => clearInterval(interval);
+    // Check KV status every 10 seconds
+    const statusInterval = setInterval(() => {
+      checkKvStatus();
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(statusInterval);
+    };
   }, [isAdmin, isOperator, router]);
 
   // Get recent registrations (last 10, sorted by registration time)
@@ -198,9 +226,29 @@ export default function AdminPage() {
       />
 
       <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/70 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/60">
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin.loggedInAs')}</p>
           <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
+          {kvStatus && (
+            <div className="mt-2 flex items-center gap-2">
+              <div
+                className={`h-2 w-2 rounded-full ${
+                  kvStatus.connected
+                    ? 'bg-emerald-500'
+                    : kvStatus.configured
+                      ? 'bg-amber-500'
+                      : 'bg-slate-400'
+                }`}
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {kvStatus.connected
+                  ? `Upstash: Connected (${kvStatus.userCount || 0} users)`
+                  : kvStatus.configured
+                    ? 'Upstash: Configured but not connected'
+                    : 'Upstash: Not configured (using localStorage)'}
+              </p>
+            </div>
+          )}
         </div>
         <button onClick={logout} className={subtleButtonStyles}>
           {t('admin.logout')}
