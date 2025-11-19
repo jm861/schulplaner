@@ -8,10 +8,19 @@ try {
   const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   
   if (kvUrl && kvToken) {
+    // @vercel/kv reads from KV_REST_API_URL and KV_REST_API_TOKEN by default
+    // If using Upstash variable names, we need to set them temporarily
+    if (process.env.UPSTASH_REDIS_REST_URL && !process.env.KV_REST_API_URL) {
+      process.env.KV_REST_API_URL = process.env.UPSTASH_REDIS_REST_URL;
+    }
+    if (process.env.UPSTASH_REDIS_REST_TOKEN && !process.env.KV_REST_API_TOKEN) {
+      process.env.KV_REST_API_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+    }
     kv = require('@vercel/kv').kv;
   }
 } catch (error) {
   // KV not available
+  console.error('[kv-status] Failed to load @vercel/kv:', error);
 }
 
 const USERS_KEY = 'schulplaner:users';
@@ -65,14 +74,18 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error: any) {
+    console.error('[kv-status] Connection test failed:', error);
     return NextResponse.json({
       configured: true,
       connected: false,
       message: 'KV/Upstash is configured but connection failed',
       error: error?.message || 'Unknown error',
+      errorDetails: error?.stack || String(error),
       variables: {
         usingKvUrl: !!process.env.KV_REST_API_URL,
         usingUpstashUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+        kvUrlSet: !!process.env.KV_REST_API_URL,
+        kvTokenSet: !!process.env.KV_REST_API_TOKEN,
       }
     });
   }

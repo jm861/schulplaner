@@ -8,10 +8,19 @@ try {
   const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   
   if (kvUrl && kvToken) {
+    // @vercel/kv reads from KV_REST_API_URL and KV_REST_API_TOKEN by default
+    // If using Upstash variable names, we need to set them temporarily
+    if (process.env.UPSTASH_REDIS_REST_URL && !process.env.KV_REST_API_URL) {
+      process.env.KV_REST_API_URL = process.env.UPSTASH_REDIS_REST_URL;
+    }
+    if (process.env.UPSTASH_REDIS_REST_TOKEN && !process.env.KV_REST_API_TOKEN) {
+      process.env.KV_REST_API_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+    }
     kv = require('@vercel/kv').kv;
   }
 } catch (error) {
   // KV not available, will use fallback
+  console.error('[track-login] Failed to load @vercel/kv:', error);
 }
 
 type User = {
