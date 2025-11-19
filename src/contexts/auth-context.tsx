@@ -41,10 +41,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Initialize users if not exists
+    // Initialize users - ensure default users always exist
     const existingUsers = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, []);
-    if (existingUsers.length === 0) {
-      writeJSON(USERS_STORAGE_KEY, DEFAULT_USERS);
+    
+    // Merge default users with existing users, ensuring defaults are always present
+    const defaultUserEmails = DEFAULT_USERS.map(u => u.email);
+    const usersToKeep = existingUsers.filter(u => !defaultUserEmails.includes(u.email));
+    const mergedUsers = [...DEFAULT_USERS, ...usersToKeep];
+    
+    // Only write if we added default users or if there were no users
+    if (existingUsers.length === 0 || usersToKeep.length !== existingUsers.length) {
+      writeJSON(USERS_STORAGE_KEY, mergedUsers);
     }
 
     // Check for saved session
