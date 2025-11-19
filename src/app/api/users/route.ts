@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+
+// Optional KV import - only use if configured
+let kv: any = null;
+try {
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    kv = require('@vercel/kv').kv;
+  }
+} catch (error) {
+  // KV not available, will use fallback
+  console.log('[users API] Vercel KV not available, using fallback');
+}
 
 type User = {
   id: string;
@@ -21,39 +31,37 @@ const DEFAULT_USERS: User[] = [
 
 const USERS_KEY = 'schulplaner:users';
 
-// Get users from KV store
+// Get users from KV store (or return defaults if KV not configured)
 async function getUsers(): Promise<User[]> {
-  try {
-    // Check if KV is configured
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.warn('[getUsers] Vercel KV not configured, using defaults. Set KV_REST_API_URL and KV_REST_API_TOKEN in Vercel.');
-      return DEFAULT_USERS;
-    }
+  // If KV is not configured, return defaults
+  if (!kv || !process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+    return DEFAULT_USERS;
+  }
 
-    const users = await kv.get<User[]>(USERS_KEY);
+  try {
+    const users = await (kv as any).get(USERS_KEY) as User[] | null;
     if (users && Array.isArray(users) && users.length > 0) {
       return users;
     }
     // Initialize with defaults if empty
-    await kv.set(USERS_KEY, DEFAULT_USERS);
+    await (kv as any).set(USERS_KEY, DEFAULT_USERS);
     return DEFAULT_USERS;
   } catch (error) {
     console.error('[getUsers] KV error, using defaults:', error);
-    // If KV is not configured or fails, return defaults
+    // If KV fails, return defaults
     return DEFAULT_USERS;
   }
 }
 
-// Save users to KV store
+// Save users to KV store (silently fails if KV not configured)
 async function saveUsers(users: User[]): Promise<void> {
-  try {
-    // Check if KV is configured
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.warn('[saveUsers] Vercel KV not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN in Vercel.');
-      return;
-    }
+  // If KV is not configured, silently skip (localStorage will handle it)
+  if (!kv || !process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+    return;
+  }
 
-    await kv.set(USERS_KEY, users);
+  try {
+    await (kv as any).set(USERS_KEY, users);
   } catch (error) {
     console.error('[saveUsers] KV error:', error);
     // Silently fail - localStorage will still work as fallback
