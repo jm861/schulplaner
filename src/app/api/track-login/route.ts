@@ -1,27 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Optional KV import - only use if configured
-// Supports both Vercel KV and Upstash Redis variable names
-let kv: any = null;
-try {
-  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  
-  if (kvUrl && kvToken) {
-    // @vercel/kv reads from KV_REST_API_URL and KV_REST_API_TOKEN by default
-    // If using Upstash variable names, we need to set them temporarily
-    if (process.env.UPSTASH_REDIS_REST_URL && !process.env.KV_REST_API_URL) {
-      process.env.KV_REST_API_URL = process.env.UPSTASH_REDIS_REST_URL;
-    }
-    if (process.env.UPSTASH_REDIS_REST_TOKEN && !process.env.KV_REST_API_TOKEN) {
-      process.env.KV_REST_API_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-    }
-    kv = require('@vercel/kv').kv;
-  }
-} catch (error) {
-  // KV not available, will use fallback
-  console.error('[track-login] Failed to load @vercel/kv:', error);
-}
+import { upstash } from '@/lib/upstash';
 
 type User = {
   id: string;
@@ -52,17 +30,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get users from KV or return (if not configured, client-side will handle it)
-    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-    const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-    
-    if (!kv || !kvUrl || !kvToken) {
-      // KV not configured - return success but don't track (localStorage will handle it)
-      return NextResponse.json({ success: true, message: 'KV not configured, using localStorage' });
+    // Get users from Upstash or return (if not configured, client-side will handle it)
+    if (!upstash.isConfigured()) {
+      // Upstash not configured - return success but don't track (localStorage will handle it)
+      return NextResponse.json({ success: true, message: 'Upstash not configured, using localStorage' });
     }
 
     try {
-      let users = await (kv as any).get(USERS_KEY) as User[] | null;
+      let users = await upstash.get<User[]>(USERS_KEY);
       
       // Initialize empty array if KV is empty
       if (!users || !Array.isArray(users)) {
@@ -94,7 +69,7 @@ export async function POST(req: NextRequest) {
         users.push(newUser);
       }
       
-      await (kv as any).set(USERS_KEY, users);
+      await upstash.set(USERS_KEY, users);
       
       const updatedUser = users.find((u) => u.id === userId || u.email === email);
       
@@ -104,12 +79,12 @@ export async function POST(req: NextRequest) {
         loginCount: updatedUser?.loginCount || 1,
         synced: true
       });
-    } catch (kvError) {
-      console.error('[track-login] KV error:', kvError);
+    } catch (upstashError) {
+      console.error('[track-login] Upstash error:', upstashError);
       // Return success anyway - localStorage will handle it
       return NextResponse.json({ 
         success: true, 
-        message: 'KV error, using localStorage',
+        message: 'Upstash error, using localStorage',
         synced: false
       });
     }

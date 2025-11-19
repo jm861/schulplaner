@@ -1,27 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Optional KV import - only use if configured
-// Supports both Vercel KV and Upstash Redis variable names
-let kv: any = null;
-try {
-  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  
-  if (kvUrl && kvToken) {
-    // @vercel/kv reads from KV_REST_API_URL and KV_REST_API_TOKEN by default
-    // If using Upstash variable names, we need to set them temporarily
-    if (process.env.UPSTASH_REDIS_REST_URL && !process.env.KV_REST_API_URL) {
-      process.env.KV_REST_API_URL = process.env.UPSTASH_REDIS_REST_URL;
-    }
-    if (process.env.UPSTASH_REDIS_REST_TOKEN && !process.env.KV_REST_API_TOKEN) {
-      process.env.KV_REST_API_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-    }
-    kv = require('@vercel/kv').kv;
-  }
-} catch (error) {
-  // KV not available, will use fallback
-  console.log('[users API] Vercel KV not available, using fallback');
-}
+import { upstash } from '@/lib/upstash';
 
 type User = {
   id: string;
@@ -47,43 +25,37 @@ const USERS_KEY = 'schulplaner:users';
 
 // Get users from KV store (or return defaults if KV not configured)
 async function getUsers(): Promise<User[]> {
-  // If KV is not configured, return defaults
-  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  
-  if (!kv || !kvUrl || !kvToken) {
+  // If Upstash is not configured, return defaults
+  if (!upstash.isConfigured()) {
     return DEFAULT_USERS;
   }
 
   try {
-    const users = await (kv as any).get(USERS_KEY) as User[] | null;
+    const users = await upstash.get<User[]>(USERS_KEY);
     if (users && Array.isArray(users) && users.length > 0) {
       return users;
     }
     // Initialize with defaults if empty
-    await (kv as any).set(USERS_KEY, DEFAULT_USERS);
+    await upstash.set(USERS_KEY, DEFAULT_USERS);
     return DEFAULT_USERS;
   } catch (error) {
-    console.error('[getUsers] KV error, using defaults:', error);
-    // If KV fails, return defaults
+    console.error('[getUsers] Upstash error, using defaults:', error);
+    // If Upstash fails, return defaults
     return DEFAULT_USERS;
   }
 }
 
 // Save users to KV store (silently fails if KV not configured)
 async function saveUsers(users: User[]): Promise<void> {
-  // If KV is not configured, silently skip (localStorage will handle it)
-  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  
-  if (!kv || !kvUrl || !kvToken) {
+  // If Upstash is not configured, silently skip (localStorage will handle it)
+  if (!upstash.isConfigured()) {
     return;
   }
 
   try {
-    await (kv as any).set(USERS_KEY, users);
+    await upstash.set(USERS_KEY, users);
   } catch (error) {
-    console.error('[saveUsers] KV error:', error);
+    console.error('[saveUsers] Upstash error:', error);
     // Silently fail - localStorage will still work as fallback
   }
 }
