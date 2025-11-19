@@ -15,6 +15,10 @@ type User = {
   email: string;
   name: string;
   role: 'user' | 'admin' | 'operator';
+  yearBorn?: string;
+  class?: string;
+  schoolForm?: string;
+  registeredAt?: string;
 };
 
 type UserWithPassword = User & { password: string };
@@ -27,15 +31,35 @@ export default function AdminPage() {
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [editingRole, setEditingRole] = useState<string | null>(null);
 
+  // Load users and refresh periodically for live updates
+  const loadUsers = () => {
+    const allUsers = readJSON<UserWithPassword[]>('schulplaner:users', []);
+    setUsers(allUsers);
+  };
+
   useEffect(() => {
     if (!isAdmin && !isOperator) {
       router.push('/');
       return;
     }
 
-    const allUsers = readJSON<UserWithPassword[]>('schulplaner:users', []);
-    setUsers(allUsers);
+    loadUsers();
+
+    // Refresh every 2 seconds to show live registrations
+    const interval = setInterval(loadUsers, 2000);
+
+    return () => clearInterval(interval);
   }, [isAdmin, isOperator, router]);
+
+  // Get recent registrations (last 10, sorted by registration time)
+  const recentRegistrations = users
+    .filter((u) => u.registeredAt)
+    .sort((a, b) => {
+      const timeA = new Date(a.registeredAt || 0).getTime();
+      const timeB = new Date(b.registeredAt || 0).getTime();
+      return timeB - timeA;
+    })
+    .slice(0, 10);
 
   const handleDeleteUser = (userId: string, userEmail: string) => {
     // Prevent deleting yourself
@@ -90,6 +114,77 @@ export default function AdminPage() {
           {t('admin.logout')}
         </button>
       </div>
+
+      {/* Live Registration Feed */}
+      {(isAdmin || isOperator) && (
+        <SectionCard title={t('admin.liveRegistrations')}>
+          <div className="space-y-3">
+            {recentRegistrations.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('admin.noRecentRegistrations')}</p>
+            ) : (
+              recentRegistrations.map((u) => {
+                const registeredDate = u.registeredAt
+                  ? new Date(u.registeredAt).toLocaleString('de-DE', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '';
+                const isRecent = u.registeredAt
+                  ? Date.now() - new Date(u.registeredAt).getTime() < 60000 // Less than 1 minute ago
+                  : false;
+
+                return (
+                  <div
+                    key={u.id}
+                    className={`rounded-2xl border px-4 py-3 ${
+                      isRecent
+                        ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/50'
+                        : 'border-slate-200 bg-white/70 dark:border-slate-800 dark:bg-slate-900/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">{u.name}</p>
+                          {isRecent && (
+                            <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-semibold text-white">
+                              {t('admin.new')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-600 dark:text-slate-300">
+                          {u.yearBorn && (
+                            <span>
+                              {t('admin.yearBorn')}: <strong>{u.yearBorn}</strong>
+                            </span>
+                          )}
+                          {u.class && (
+                            <span>
+                              {t('admin.class')}: <strong>{u.class}</strong>
+                            </span>
+                          )}
+                          {u.schoolForm && (
+                            <span>
+                              {t('admin.schoolForm')}: <strong>{u.schoolForm}</strong>
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                          {t('admin.registeredAt')}: {registeredDate}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </SectionCard>
+      )}
 
       {/* User Count for Operators */}
       {isOperator && (

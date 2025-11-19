@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
 import { readJSON, writeJSON } from '@/lib/storage';
-import { inputStyles, subtleButtonStyles } from '@/styles/theme';
+import { inputStyles, selectStyles, subtleButtonStyles } from '@/styles/theme';
 
 type User = {
   id: string;
@@ -15,6 +15,10 @@ type User = {
   name: string;
   role: 'user' | 'admin' | 'operator';
   password: string;
+  yearBorn?: string;
+  class?: string;
+  schoolForm?: string;
+  registeredAt?: string;
 };
 
 const USERS_STORAGE_KEY = 'schulplaner:users';
@@ -28,6 +32,9 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    yearBorn: '',
+    class: '',
+    schoolForm: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +72,10 @@ export default function RegisterPage() {
         name: formData.name,
         role: 'user',
         password: formData.password,
+        yearBorn: formData.yearBorn || undefined,
+        class: formData.class || undefined,
+        schoolForm: formData.schoolForm || undefined,
+        registeredAt: new Date().toISOString(),
       };
 
       users.push(newUser);
@@ -75,7 +86,7 @@ export default function RegisterPage() {
       setIsLoading(false);
 
       if (success) {
-        router.push('/onboarding');
+        router.push('/welcome');
       } else {
         setError(t('auth.registrationFailed'));
       }
@@ -143,6 +154,54 @@ export default function RegisterPage() {
               minLength={6}
             />
           </label>
+
+          <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {t('auth.additionalInfo')}
+            </p>
+            
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.yearBorn')}</span>
+              <input
+                type="number"
+                value={formData.yearBorn}
+                onChange={(e) => setFormData((prev) => ({ ...prev, yearBorn: e.target.value }))}
+                className={inputStyles}
+                placeholder="2007"
+                min="1990"
+                max={new Date().getFullYear()}
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm mt-4">
+              <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.class')}</span>
+              <input
+                type="text"
+                value={formData.class}
+                onChange={(e) => setFormData((prev) => ({ ...prev, class: e.target.value }))}
+                className={inputStyles}
+                placeholder="11a"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm mt-4">
+              <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.schoolForm')}</span>
+              <select
+                value={formData.schoolForm}
+                onChange={(e) => setFormData((prev) => ({ ...prev, schoolForm: e.target.value }))}
+                className={selectStyles}
+              >
+                <option value="">{t('auth.selectSchoolForm')}</option>
+                <option value="Gymnasium">Gymnasium</option>
+                <option value="Realschule">Realschule</option>
+                <option value="FOS">FOS (Fachoberschule)</option>
+                <option value="BOS">BOS (Berufsoberschule)</option>
+                <option value="Gesamtschule">Gesamtschule</option>
+                <option value="Hauptschule">Hauptschule</option>
+                <option value="Other">{t('auth.other')}</option>
+              </select>
+            </label>
+          </div>
 
           {error && (
             <div className="rounded-2xl border border-rose-400 bg-rose-50/50 p-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-100">

@@ -10,6 +10,10 @@ type User = {
   email: string;
   name: string;
   role: 'user' | 'admin' | 'operator';
+  yearBorn?: string;
+  class?: string;
+  schoolForm?: string;
+  registeredAt?: string;
 };
 
 type AuthContextType = {
