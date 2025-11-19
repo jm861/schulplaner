@@ -89,14 +89,28 @@ export async function POST(req: NextRequest) {
     const { action, user, userId } = body;
 
     if (action === 'create' && user) {
-      // Check if email already exists
-      if (users.some((u) => u.email === user.email)) {
+      // Check if user already exists (by ID or email)
+      const existingById = users.find((u) => u.id === user.id);
+      const existingByEmail = users.find((u) => u.email === user.email);
+      
+      if (existingById) {
+        // User exists by ID, update instead
+        const index = users.findIndex((u) => u.id === user.id);
+        const updatedUsers = [...users];
+        updatedUsers[index] = user;
+        await saveUsers(updatedUsers);
+        return NextResponse.json({ success: true, user, action: 'updated' });
+      }
+      
+      if (existingByEmail) {
+        // Email exists but different ID - this shouldn't happen, but handle it
         return NextResponse.json(
           { error: 'Email already exists' },
           { status: 400 }
         );
       }
 
+      // New user - add it
       const updatedUsers = [...users, user];
       await saveUsers(updatedUsers);
       return NextResponse.json({ success: true, user });

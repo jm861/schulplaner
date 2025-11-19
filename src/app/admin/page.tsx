@@ -33,23 +33,66 @@ export default function AdminPage() {
 
   // Load users and refresh periodically for live updates
   const loadUsers = async () => {
+    let apiUsers: UserWithPassword[] = [];
+    
     try {
       // Try to fetch from API first (server-side storage)
       const response = await fetch('/api/users');
       if (response.ok) {
         const data = await response.json();
         if (data.users && Array.isArray(data.users)) {
-          setUsers(data.users);
-          return;
+          apiUsers = data.users;
         }
       }
     } catch (error) {
-      console.warn('Failed to fetch users from API, falling back to localStorage:', error);
+      console.warn('Failed to fetch users from API:', error);
     }
     
-    // Fallback to localStorage
-    const allUsers = readJSON<UserWithPassword[]>('schulplaner:users', []);
-    setUsers(allUsers);
+    // Get users from localStorage
+    const localUsers = readJSON<UserWithPassword[]>('schulplaner:users', []);
+    
+    // Merge users: if API only has defaults (2 users) and localStorage has more, prioritize localStorage
+    // Otherwise, merge API users with localStorage users that aren't in API
+    const hasOnlyDefaults = apiUsers.length <= 2 && localUsers.length > apiUsers.length;
+    
+    let mergedUsers: UserWithPassword[];
+    if (hasOnlyDefaults) {
+      // If API only has defaults, use localStorage as source of truth
+      mergedUsers = localUsers;
+      
+      // Try to sync all localStorage users to API in background
+      localUsers.forEach(async (user) => {
+        try {
+          await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'create', user }),
+          });
+        } catch (error) {
+          // Silently fail - API might not be configured
+        }
+      });
+    } else {
+      // Merge API users with localStorage users that aren't in API
+      const apiUserIds = new Set(apiUsers.map(u => u.id));
+      const localUsersNotInApi = localUsers.filter(u => !apiUserIds.has(u.id));
+      mergedUsers = [...apiUsers, ...localUsersNotInApi];
+      
+      // Sync missing users to API
+      localUsersNotInApi.forEach(async (user) => {
+        try {
+          await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'create', user }),
+          });
+        } catch (error) {
+          // Silently fail
+        }
+      });
+    }
+    
+    setUsers(mergedUsers);
   };
 
   useEffect(() => {
