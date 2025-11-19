@@ -9,7 +9,7 @@ type ProtectedRouteProps = {
   children: ReactNode;
 };
 
-const PUBLIC_ROUTES = ['/login', '/register'];
+const PUBLIC_ROUTES = ['/login', '/register', '/verify'];
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated } = useAuth();

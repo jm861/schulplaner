@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import { useAuth } from '@/contexts/auth-context';
@@ -12,9 +12,11 @@ export default function LoginPage() {
   const { t } = useLanguage();
   const { login, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -24,8 +26,17 @@ export default function LoginPage() {
       setIsInitialized(true);
     }, 200);
 
+    // Check for verification success
+    if (searchParams.get('verified') === 'true') {
+      setSuccess(t('auth.emailVerified'));
+      const verifiedEmail = searchParams.get('email');
+      if (verifiedEmail) {
+        setEmail(verifiedEmail);
+      }
+    }
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [searchParams, t]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -112,6 +123,11 @@ export default function LoginPage() {
             />
           </label>
 
+          {success && (
+            <div className="rounded-2xl border border-emerald-400 bg-emerald-50/50 p-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-100">
+              {success}
+            </div>
+          )}
           {error && (
             <div className="rounded-2xl border border-rose-400 bg-rose-50/50 p-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-100">
               {error}
@@ -134,12 +150,6 @@ export default function LoginPage() {
               {t('auth.createAccount')}
             </Link>
           </p>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
-          <p className="font-semibold text-slate-900 dark:text-white mb-2">{t('auth.credentials')}</p>
-          <p><strong>Admin:</strong> admin@schulplaner.de / admin123</p>
-          <p className="mt-1"><strong>Student:</strong> student@schulplaner.de / student123</p>
         </div>
       </div>
     </div>

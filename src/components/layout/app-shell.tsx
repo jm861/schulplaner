@@ -13,7 +13,7 @@ type AppShellProps = {
   children: ReactNode;
 };
 
-const PUBLIC_ROUTES = ['/login', '/register'];
+const PUBLIC_ROUTES = ['/login', '/register', '/verify'];
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
