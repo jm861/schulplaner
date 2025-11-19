@@ -32,7 +32,22 @@ export default function AdminPage() {
   const [editingRole, setEditingRole] = useState<string | null>(null);
 
   // Load users and refresh periodically for live updates
-  const loadUsers = () => {
+  const loadUsers = async () => {
+    try {
+      // Try to fetch from API first (server-side storage)
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.users && Array.isArray(data.users)) {
+          setUsers(data.users);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch users from API, falling back to localStorage:', error);
+    }
+    
+    // Fallback to localStorage
     const allUsers = readJSON<UserWithPassword[]>('schulplaner:users', []);
     setUsers(allUsers);
   };
@@ -46,7 +61,9 @@ export default function AdminPage() {
     loadUsers();
 
     // Refresh every 2 seconds to show live registrations
-    const interval = setInterval(loadUsers, 2000);
+    const interval = setInterval(() => {
+      loadUsers();
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [isAdmin, isOperator, router]);
@@ -61,7 +78,7 @@ export default function AdminPage() {
     })
     .slice(0, 10);
 
-  const handleDeleteUser = (userId: string, userEmail: string) => {
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
     // Prevent deleting yourself
     if (userId === user?.id) {
       alert(t('admin.cannotDeleteSelf'));
@@ -73,6 +90,19 @@ export default function AdminPage() {
     }
 
     const updatedUsers = users.filter((u) => u.id !== userId);
+    
+    // Sync to API
+    try {
+      await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', userId }),
+      });
+    } catch (error) {
+      console.warn('Failed to sync delete to API:', error);
+    }
+    
+    // Update localStorage
     writeJSON('schulplaner:users', updatedUsers);
     setUsers(updatedUsers);
   };
@@ -84,10 +114,27 @@ export default function AdminPage() {
     }));
   };
 
-  const handleRoleChange = (userId: string, newRole: 'user' | 'admin' | 'operator') => {
+  const handleRoleChange = async (userId: string, newRole: 'user' | 'admin' | 'operator') => {
+    const userToUpdate = users.find((u) => u.id === userId);
+    if (!userToUpdate) return;
+
+    const updatedUser = { ...userToUpdate, role: newRole };
     const updatedUsers = users.map((u) =>
-      u.id === userId ? { ...u, role: newRole } : u
+      u.id === userId ? updatedUser : u
     );
+    
+    // Sync to API
+    try {
+      await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update', user: updatedUser }),
+      });
+    } catch (error) {
+      console.warn('Failed to sync role change to API:', error);
+    }
+    
+    // Update localStorage
     writeJSON('schulplaner:users', updatedUsers);
     setUsers(updatedUsers);
     setEditingRole(null);

@@ -95,7 +95,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={inputStyles}
-              placeholder="admin@schulplaner.de"
+              placeholder="your.email@example.com"
               required
             />
           </label>

@@ -81,6 +81,18 @@ export default function RegisterPage() {
       users.push(newUser);
       writeJSON(USERS_STORAGE_KEY, users);
 
+      // Sync to API (server-side storage)
+      try {
+        await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'create', user: newUser }),
+        });
+      } catch (error) {
+        console.warn('Failed to sync user to API:', error);
+        // Continue anyway - localStorage is updated
+      }
+
       // Auto-login the new user
       const success = await login(formData.email, formData.password);
       setIsLoading(false);
