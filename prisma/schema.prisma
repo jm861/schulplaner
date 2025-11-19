@@ -1,0 +1,136 @@
+// Prisma schema for the Schulplaner application.
+// Captures core planning entities: classes, activities, reminders, and AI insights.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  grade     String?
+  timezone  String?  @default("Europe/Berlin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses    Course[]
+  activities Activity[]
+  reminders  Reminder[]
+  insights   AIInsight[]
+}
+
+model Course {
+  id          String      @id @default(cuid())
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  name        String
+  subjectCode String?
+  teacher     String?
+  colorHex    String?
+  location    String?
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  sessions ClassSession[]
+  homework Homework[]
+}
+
+model ClassSession {
+  id        String   @id @default(cuid())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+  /// Weekday index: 0 = Monday, 6 = Sunday
+  weekday   Int
+  startTime DateTime
+  endTime   DateTime
+  location  String?
+  recurring Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reminders Reminder[]
+}
+
+model Homework {
+  id            String   @id @default(cuid())
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId      String
+  title         String
+  description   String?
+  /// Allowed values: PENDING, IN_PROGRESS, COMPLETED
+  status        String   @default("PENDING")
+  dueDate       DateTime?
+  estimatedMins Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  reminders Reminder[]
+  insights  AIInsight[]
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  title       String
+  description String?
+  /// Allowed values: SPORTS, MEETUP, STUDY_GROUP, PERSONAL, OTHER
+  category    String   @default("OTHER")
+  location    String?
+  startTime   DateTime
+  endTime     DateTime
+  priority    Int      @default(0)
+  isRecurring Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reminders Reminder[]
+  insights  AIInsight[]
+}
+
+model Reminder {
+  id             String        @id @default(cuid())
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId      String
+  title          String
+  description    String?
+  remindAt       DateTime
+  delivered      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+
+  classSession   ClassSession? @relation(fields: [classSessionId], references: [id])
+  classSessionId String?
+
+  homework       Homework?     @relation(fields: [homeworkId], references: [id])
+  homeworkId     String?
+
+  activity       Activity?     @relation(fields: [activityId], references: [id])
+  activityId     String?
+}
+
+model AIInsight {
+  id            String    @id @default(cuid())
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId     String
+  /// Allowed values: HOMEWORK_SUMMARY, TEST_PREP, STUDY_PLAN, DAILY_DIGEST, CUSTOM
+  type          String    @default("CUSTOM")
+  prompt        String
+  response      String
+  sourceModel   String?
+  tokensUsed    Int?
+  createdAt     DateTime  @default(now())
+
+  homework      Homework? @relation(fields: [homeworkId], references: [id])
+  homeworkId    String?
+
+  activity      Activity? @relation(fields: [activityId], references: [id])
+  activityId    String?
+}
