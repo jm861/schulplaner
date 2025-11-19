@@ -14,6 +14,8 @@ type User = {
   class?: string;
   schoolForm?: string;
   registeredAt?: string;
+  lastLoginAt?: string;
+  loginCount?: number;
 };
 
 type AuthContextType = {
@@ -67,8 +69,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (foundUser) {
       const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      writeJSON(AUTH_STORAGE_KEY, { user: userWithoutPassword });
+      
+      // Update last login time locally
+      const now = new Date().toISOString();
+      const updatedUser = {
+        ...userWithoutPassword,
+        lastLoginAt: now,
+        loginCount: (userWithoutPassword.loginCount || 0) + 1,
+      };
+      
+      // Update in localStorage
+      const updatedUsers = users.map((u) =>
+        u.id === foundUser.id
+          ? { ...u, lastLoginAt: now, loginCount: (u.loginCount || 0) + 1 }
+          : u
+      );
+      writeJSON(USERS_STORAGE_KEY, updatedUsers);
+      
+      setUser(updatedUser);
+      writeJSON(AUTH_STORAGE_KEY, { user: updatedUser });
+      
+      // Track login server-side (if KV is configured)
+      try {
+        await fetch('/api/track-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: foundUser.id, email: foundUser.email }),
+        });
+      } catch (error) {
+        // Silently fail - localStorage already updated
+      }
+      
       return true;
     }
 

@@ -250,6 +250,7 @@ export const translations = {
     'admin.class': 'Class',
     'admin.schoolForm': 'School Form',
     'admin.registeredAt': 'Registered',
+    'admin.lastLogin': 'Last Login',
     
     // Calendar
     'calendar.title': 'Weekly Calendar',
@@ -543,6 +544,7 @@ export const translations = {
     'admin.class': 'Klasse',
     'admin.schoolForm': 'Schulform',
     'admin.registeredAt': 'Registriert am',
+    'admin.lastLogin': 'Letzter Login',
     
     // Calendar
     'calendar.title': 'Wochenkalender',

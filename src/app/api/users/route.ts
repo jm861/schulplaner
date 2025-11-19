@@ -21,6 +21,8 @@ type User = {
   class?: string;
   schoolForm?: string;
   registeredAt?: string;
+  lastLoginAt?: string;
+  loginCount?: number;
 };
 
 // Default users

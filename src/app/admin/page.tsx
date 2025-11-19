@@ -19,6 +19,8 @@ type User = {
   class?: string;
   schoolForm?: string;
   registeredAt?: string;
+  lastLoginAt?: string;
+  loginCount?: number;
 };
 
 type UserWithPassword = User & { password: string };
@@ -263,9 +265,25 @@ export default function AdminPage() {
                             </span>
                           )}
                         </div>
-                        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                          {t('admin.registeredAt')}: {registeredDate}
-                        </p>
+                        <div className="mt-2 space-y-1 text-xs text-slate-400 dark:text-slate-500">
+                          <p>
+                            {t('admin.registeredAt')}: {registeredDate}
+                          </p>
+                          {u.lastLoginAt && (
+                            <p>
+                              {t('admin.lastLogin')}: {new Date(u.lastLoginAt).toLocaleString('de-DE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                              {u.loginCount && u.loginCount > 1 && (
+                                <span className="ml-2 text-slate-500">({u.loginCount}x)</span>
+                              )}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -304,6 +322,20 @@ export default function AdminPage() {
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">{u.name}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
+                      {u.lastLoginAt && (
+                        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                          {t('admin.lastLogin')}: {new Date(u.lastLoginAt).toLocaleString('de-DE', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                          {u.loginCount && u.loginCount > 1 && (
+                            <span className="ml-2">({u.loginCount}x)</span>
+                          )}
+                        </p>
+                      )}
                       <div className="mt-2 flex items-center gap-2">
                         <span className="text-xs text-slate-600 dark:text-slate-400">{t('admin.password')}:</span>
                         <span className="font-mono text-xs text-slate-900 dark:text-white">
