@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useLanguage } from '@/contexts/language-context';
 import { navLinks } from '@/lib/nav';
@@ -9,27 +11,36 @@ import { navLinks } from '@/lib/nav';
 export function BottomNav() {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const [mounted, setMounted] = useState(false);
 
-  return (
-    <div 
-      className="fixed bottom-0 left-0 right-0 z-[100] mx-auto w-full max-w-xl md:hidden"
-      style={{ 
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed bottom-0 left-1/2 z-[100] w-full max-w-xl -translate-x-1/2 transform px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
+      style={{
         position: 'fixed',
         bottom: 0,
-        left: 0,
-        right: 0,
-        margin: '0 auto',
+        left: '50%',
+        transform: 'translate3d(-50%, 0, 0)',
+        WebkitTransform: 'translate3d(-50%, 0, 0)',
+        width: '100%',
         maxWidth: '42rem',
-        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
-        WebkitTransform: 'translateZ(0)',
-        transform: 'translateZ(0)',
+        willChange: 'transform',
         WebkitBackfaceVisibility: 'hidden',
         backfaceVisibility: 'hidden',
-        willChange: 'transform'
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
       }}
     >
       <nav className="rounded-t-3xl border-t border-slate-200 bg-white/95 px-2 py-2 text-[10px] font-medium text-slate-600 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200">
-      <ul className="flex items-center justify-between gap-1">
+        <ul className="flex items-center justify-between gap-1">
         {navLinks.map((link) => {
           const isActive =
             link.href === '/'
@@ -58,9 +69,10 @@ export function BottomNav() {
             </li>
           );
         })}
-      </ul>
+        </ul>
       </nav>
-    </div>
+    </div>,
+    document.body
   );
 }
 

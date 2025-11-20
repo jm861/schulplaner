@@ -36,16 +36,24 @@ export function AppShell({ children }: AppShellProps) {
     }
     
     try {
-      // Then try to get from users array by matching ID
+      // Then try to get from users array by matching ID or email
       const users = readJSON<Array<{ id: string; name?: string; email?: string }>>('schulplaner:users', []);
-      const currentUser = users.find(u => u.id === user.id || u.email?.toLowerCase().trim() === user.email?.toLowerCase().trim());
+      const currentUser = users.find(
+        (u) =>
+          u.id === user.id ||
+          u.email?.toLowerCase().trim() === user.email?.toLowerCase().trim()
+      );
       if (currentUser?.name) {
         return currentUser.name;
       }
       
-      // Last resort: check settings (but this might have wrong user's data)
-      const settings = readJSON<{ profile?: { name?: string } }>('schulplaner:settings', {});
-      if (settings.profile?.name) {
+      // Last resort: check settings, but ensure it matches the current user
+      const settings = readJSON<{ profile?: { name?: string; email?: string } }>('schulplaner:settings', {});
+      if (
+        settings.profile?.name &&
+        (!settings.profile?.email ||
+          settings.profile.email.toLowerCase().trim() === user.email?.toLowerCase().trim())
+      ) {
         return settings.profile.name;
       }
       
