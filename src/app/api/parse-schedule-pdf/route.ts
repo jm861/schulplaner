@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Dynamic import for pdfjs to handle serverless environment
-let pdfjsLib: any;
+// Configure runtime for serverless (needed for pdfjs-dist)
+export const runtime = 'nodejs';
+export const maxDuration = 30; // 30 seconds max for PDF parsing
 
 type ParsedClass = {
   time: string;
@@ -42,15 +43,29 @@ export async function POST(req: NextRequest) {
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     
-    // Dynamically import pdfjs (required for serverless)
-    if (!pdfjsLib) {
-      pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    }
-    
-    // Parse PDF using pdfjs
+    // Dynamically import pdfjs for serverless compatibility
     let text = '';
     try {
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      // Import pdfjs-dist - use the worker build for serverless
+      const pdfjs = await import('pdfjs-dist');
+      
+      // Use the getDocument function
+      const getDocument = pdfjs.getDocument;
+      
+      if (!getDocument) {
+        throw new Error('PDF.js getDocument function not available');
+      }
+      
+      // Configure worker (not needed for text extraction, but good practice)
+      // For serverless, we can skip worker setup
+      
+      // Parse PDF
+      const loadingTask = getDocument({
+        data: arrayBuffer,
+        useSystemFonts: true,
+        verbosity: 0, // Suppress warnings
+      });
+      
       const pdf = await loadingTask.promise;
       
       // Extract text from all pages
@@ -65,11 +80,12 @@ export async function POST(req: NextRequest) {
       }
     } catch (pdfError) {
       console.error('[parse-schedule-pdf] PDF parsing error:', pdfError);
-      // Return error with more details
+      // Return error with more details for debugging
       return NextResponse.json(
         { 
           error: 'Failed to parse PDF. The file might be corrupted or in an unsupported format.',
-          details: pdfError instanceof Error ? pdfError.message : 'Unknown error'
+          details: pdfError instanceof Error ? pdfError.message : 'Unknown error',
+          type: pdfError instanceof Error ? pdfError.constructor.name : typeof pdfError
         },
         { status: 400 }
       );
