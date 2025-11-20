@@ -94,12 +94,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
       
-      // Read users - try multiple times on mobile if needed (up to 3 attempts)
+      console.log('[auth] Attempting login:', { normalizedEmail, passwordLength: trimmedPassword.length });
+      
+      // Read users - try multiple times on mobile if needed (up to 5 attempts with longer delays)
       let users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
       let attempts = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5;
       
-      // Mobile localStorage might not be ready immediately
+      console.log('[auth] Initial users read:', { 
+        userCount: users.length, 
+        emails: users.map(u => u.email.toLowerCase().trim()),
+        hasLocalStorage: typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+      });
+      
+      // Mobile localStorage might not be ready immediately - try multiple times
       while (attempts < maxAttempts) {
         // Check if we need to retry (new user not found in localStorage yet)
         const isNewUser = normalizedEmail !== 'admin@schulplaner.de' && 
@@ -107,9 +115,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                           !users.some(u => u.email.toLowerCase().trim() === normalizedEmail);
         
         if (isNewUser && attempts < maxAttempts - 1) {
-          // Wait longer on mobile (up to 500ms total)
-          await new Promise(resolve => setTimeout(resolve, 150 * (attempts + 1)));
+          // Wait longer on mobile (up to 1 second total)
+          const delay = 200 * (attempts + 1);
+          console.log(`[auth] New user not found, retrying in ${delay}ms (attempt ${attempts + 1}/${maxAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
           users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+          console.log(`[auth] Retry ${attempts + 1} - users found:`, {
+            userCount: users.length,
+            emails: users.map(u => u.email.toLowerCase().trim())
+          });
           attempts++;
           continue;
         }
@@ -117,19 +131,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       // Case-insensitive email matching for mobile compatibility
+      // Also try exact match in case email wasn't normalized during registration
       const foundUser = users.find((u) => {
         const userEmail = u.email.toLowerCase().trim();
-        return userEmail === normalizedEmail && u.password === trimmedPassword;
+        const emailMatch = userEmail === normalizedEmail;
+        const passwordMatch = u.password === trimmedPassword;
+        
+        // Log for debugging
+        if (emailMatch && !passwordMatch) {
+          console.warn('[auth] Email matches but password does not:', {
+            userEmail,
+            inputPassword: trimmedPassword,
+            storedPassword: u.password,
+            passwordLengths: { input: trimmedPassword.length, stored: u.password.length }
+          });
+        }
+        
+        return emailMatch && passwordMatch;
       });
 
       if (!foundUser) {
+        // More detailed error logging
+        const matchingEmail = users.find(u => u.email.toLowerCase().trim() === normalizedEmail);
         console.error('[auth] User not found or password incorrect', {
           normalizedEmail,
           userCount: users.length,
-          userEmails: users.map(u => u.email.toLowerCase().trim())
+          userEmails: users.map(u => u.email.toLowerCase().trim()),
+          hasMatchingEmail: !!matchingEmail,
+          matchingEmailPassword: matchingEmail ? matchingEmail.password : null,
+          inputPassword: trimmedPassword,
+          passwordMatch: matchingEmail ? matchingEmail.password === trimmedPassword : false
         });
         return false;
       }
+      
+      console.log('[auth] User found, proceeding with login:', foundUser.email);
 
       const { password: _, ...userWithoutPassword } = foundUser;
       

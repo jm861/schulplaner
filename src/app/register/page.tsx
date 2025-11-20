@@ -65,13 +65,14 @@ export default function RegisterPage() {
         return;
       }
 
-      // Create new user
+      // Create new user - normalize email for consistency
+      const normalizedEmail = formData.email.toLowerCase().trim();
       const newUser: User = {
         id: crypto.randomUUID(),
-        email: formData.email,
+        email: normalizedEmail, // Store normalized email
         name: formData.name,
         role: 'user',
-        password: formData.password,
+        password: formData.password, // Store password as-is (no trimming to preserve spaces if intentional)
         yearBorn: formData.yearBorn || undefined,
         class: formData.class || undefined,
         schoolForm: formData.schoolForm || undefined,
@@ -79,7 +80,34 @@ export default function RegisterPage() {
       };
 
       users.push(newUser);
-      writeJSON(USERS_STORAGE_KEY, users);
+      const writeSuccess = writeJSON(USERS_STORAGE_KEY, users);
+      
+      // Verify write on mobile
+      if (!writeSuccess) {
+        console.warn('[register] Initial write may have failed, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const retrySuccess = writeJSON(USERS_STORAGE_KEY, users);
+        if (!retrySuccess) {
+          console.error('[register] Failed to write user to localStorage after retry');
+        }
+      }
+      
+      // Verify user was actually saved
+      const verifyUsers = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, []);
+      const userSaved = verifyUsers.some(u => u.email.toLowerCase().trim() === normalizedEmail);
+      console.log('[register] User saved verification:', {
+        writeSuccess,
+        userSaved,
+        totalUsers: verifyUsers.length,
+        savedEmail: normalizedEmail
+      });
+      
+      if (!userSaved) {
+        console.error('[register] User was not saved correctly!');
+        setError('Fehler beim Speichern des Benutzers. Bitte versuche es erneut.');
+        setIsLoading(false);
+        return;
+      }
 
       // Sync to API (server-side storage)
       try {
@@ -93,14 +121,22 @@ export default function RegisterPage() {
         // Continue anyway - localStorage is updated
       }
 
-      // Auto-login the new user
-      const success = await login(formData.email, formData.password);
+      // Auto-login the new user - use normalized email
+      console.log('[register] Attempting auto-login with:', {
+        email: normalizedEmail,
+        passwordLength: formData.password.length
+      });
+      
+      const success = await login(normalizedEmail, formData.password);
       setIsLoading(false);
 
       if (success) {
+        // Wait a bit for mobile state sync
+        await new Promise(resolve => setTimeout(resolve, 200));
         router.push('/welcome');
       } else {
-        setError(t('auth.registrationFailed'));
+        console.error('[register] Auto-login failed after registration');
+        setError('Registrierung erfolgreich, aber automatische Anmeldung fehlgeschlagen. Bitte melde dich manuell an.');
       }
     } catch (error) {
       setIsLoading(false);
