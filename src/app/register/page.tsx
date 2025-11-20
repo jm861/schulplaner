@@ -67,12 +67,15 @@ export default function RegisterPage() {
 
       // Create new user - normalize email for consistency
       const normalizedEmail = formData.email.toLowerCase().trim();
+      // Trim password to match login behavior (login trims passwords)
+      const trimmedPassword = formData.password.trim();
+      
       const newUser: User = {
         id: crypto.randomUUID(),
         email: normalizedEmail, // Store normalized email
         name: formData.name,
         role: 'user',
-        password: formData.password, // Store password as-is (no trimming to preserve spaces if intentional)
+        password: trimmedPassword, // Store trimmed password to match login behavior
         yearBorn: formData.yearBorn || undefined,
         class: formData.class || undefined,
         schoolForm: formData.schoolForm || undefined,
@@ -121,13 +124,13 @@ export default function RegisterPage() {
         // Continue anyway - localStorage is updated
       }
 
-      // Auto-login the new user - use normalized email
+      // Auto-login the new user - use normalized email and trimmed password
       console.log('[register] Attempting auto-login with:', {
         email: normalizedEmail,
-        passwordLength: formData.password.length
+        passwordLength: trimmedPassword.length
       });
       
-      const success = await login(normalizedEmail, formData.password);
+      const success = await login(normalizedEmail, trimmedPassword);
       setIsLoading(false);
 
       if (success) {

@@ -47,6 +47,15 @@ export default function LoginPage() {
     }
 
     try {
+      // Special logging for debugging specific email
+      if (normalizedEmail.includes('johannes@menzelcity')) {
+        console.log('[login] Attempting login for johannes@menzelcity.de:', {
+          normalizedEmail,
+          passwordLength: trimmedPassword.length,
+          passwordPreview: trimmedPassword.substring(0, 2) + '...'
+        });
+      }
+      
       const success = await login(normalizedEmail, trimmedPassword);
       
       if (success) {

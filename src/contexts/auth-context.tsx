@@ -135,15 +135,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const foundUser = users.find((u) => {
         const userEmail = u.email.toLowerCase().trim();
         const emailMatch = userEmail === normalizedEmail;
-        const passwordMatch = u.password === trimmedPassword;
+        
+        // Try both trimmed and untrimmed password comparison (for backwards compatibility)
+        const storedPassword = u.password;
+        const passwordMatch = storedPassword === trimmedPassword || storedPassword.trim() === trimmedPassword;
+        
+        // Special debugging for specific email
+        if (normalizedEmail.includes('johannes@menzelcity') || userEmail.includes('johannes@menzelcity')) {
+          console.log('[auth] Debugging specific email:', {
+            normalizedEmail,
+            userEmail,
+            emailMatch,
+            storedPassword: storedPassword,
+            storedPasswordTrimmed: storedPassword.trim(),
+            inputPassword: trimmedPassword,
+            passwordMatch: passwordMatch,
+            passwordLengths: { 
+              input: trimmedPassword.length, 
+              stored: storedPassword.length,
+              storedTrimmed: storedPassword.trim().length
+            },
+            exactMatch: storedPassword === trimmedPassword,
+            trimmedMatch: storedPassword.trim() === trimmedPassword
+          });
+        }
         
         // Log for debugging
         if (emailMatch && !passwordMatch) {
           console.warn('[auth] Email matches but password does not:', {
             userEmail,
             inputPassword: trimmedPassword,
-            storedPassword: u.password,
-            passwordLengths: { input: trimmedPassword.length, stored: u.password.length }
+            storedPassword: storedPassword,
+            storedPasswordTrimmed: storedPassword.trim(),
+            passwordLengths: { 
+              input: trimmedPassword.length, 
+              stored: storedPassword.length,
+              storedTrimmed: storedPassword.trim().length
+            },
+            exactMatch: storedPassword === trimmedPassword,
+            trimmedMatch: storedPassword.trim() === trimmedPassword
           });
         }
         
