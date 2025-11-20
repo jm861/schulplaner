@@ -96,20 +96,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('[auth] Attempting login:', { normalizedEmail, passwordLength: trimmedPassword.length });
       
-      // Read users - try multiple times on mobile if needed (up to 5 attempts with longer delays)
-      let users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+      // Try to fetch users from API first (like admin does)
+      let apiUsers: Array<User & { password: string }> = [];
+      try {
+        const response = await fetch('/api/users');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.users && Array.isArray(data.users)) {
+            apiUsers = data.users as Array<User & { password: string }>;
+            console.log('[auth] Fetched users from API:', { 
+              userCount: apiUsers.length,
+              emails: apiUsers.map(u => u.email.toLowerCase().trim())
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('[auth] Failed to fetch users from API:', error);
+      }
+      
+      // Read users from localStorage - try multiple times on mobile if needed (up to 5 attempts with longer delays)
+      let localUsers = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
       let attempts = 0;
       const maxAttempts = 5;
       
-      console.log('[auth] Initial users read:', { 
-        userCount: users.length, 
-        emails: users.map(u => u.email.toLowerCase().trim()),
+      console.log('[auth] Initial users read from localStorage:', { 
+        userCount: localUsers.length, 
+        emails: localUsers.map(u => u.email.toLowerCase().trim()),
         hasLocalStorage: typeof window !== 'undefined' && typeof localStorage !== 'undefined'
       });
       
+      // Merge API users with localStorage users (like admin does)
+      // If API has more users than localStorage, prioritize API
+      const hasOnlyDefaults = apiUsers.length <= 2 && localUsers.length > apiUsers.length;
+      let users: Array<User & { password: string }>;
+      
+      if (hasOnlyDefaults && localUsers.length > 2) {
+        // If API only has defaults but localStorage has more, use localStorage
+        users = localUsers;
+        console.log('[auth] Using localStorage as source (has more users than API)');
+      } else {
+        // Merge API users with localStorage users that aren't in API
+        const apiUserIds = new Set(apiUsers.map(u => u.id));
+        const localUsersNotInApi = localUsers.filter(u => !apiUserIds.has(u.id));
+        users = [...apiUsers, ...localUsersNotInApi];
+        console.log('[auth] Merged users from API and localStorage:', {
+          apiCount: apiUsers.length,
+          localCount: localUsers.length,
+          mergedCount: users.length,
+          emails: users.map(u => u.email.toLowerCase().trim())
+        });
+        
+        // Sync merged users back to localStorage for faster future access
+        if (users.length > localUsers.length) {
+          writeJSON(USERS_STORAGE_KEY, users);
+          console.log('[auth] Synced merged users to localStorage');
+        }
+      }
+      
       // Mobile localStorage might not be ready immediately - try multiple times
+      // Also re-fetch from API if user not found
       while (attempts < maxAttempts) {
-        // Check if we need to retry (new user not found in localStorage yet)
+        // Check if we need to retry (new user not found yet)
         const isNewUser = normalizedEmail !== 'admin@schulplaner.de' && 
                           normalizedEmail !== 'student@schulplaner.de' &&
                           !users.some(u => u.email.toLowerCase().trim() === normalizedEmail);
@@ -119,7 +166,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const delay = 200 * (attempts + 1);
           console.log(`[auth] New user not found, retrying in ${delay}ms (attempt ${attempts + 1}/${maxAttempts})`);
           await new Promise(resolve => setTimeout(resolve, delay));
-          users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+          
+          // Re-fetch from API
+          try {
+            const response = await fetch('/api/users');
+            if (response.ok) {
+              const data = await response.json();
+              if (data.users && Array.isArray(data.users)) {
+                apiUsers = data.users as Array<User & { password: string }>;
+              }
+            }
+          } catch (error) {
+            console.warn('[auth] Failed to re-fetch from API:', error);
+          }
+          
+          // Re-read from localStorage
+          localUsers = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+          
+          // Re-merge
+          const apiUserIds = new Set(apiUsers.map(u => u.id));
+          const localUsersNotInApi = localUsers.filter(u => !apiUserIds.has(u.id));
+          users = [...apiUsers, ...localUsersNotInApi];
+          
           console.log(`[auth] Retry ${attempts + 1} - users found:`, {
             userCount: users.length,
             emails: users.map(u => u.email.toLowerCase().trim())
