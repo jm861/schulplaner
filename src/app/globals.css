@@ -30,15 +30,25 @@ body {
 
 /* Fix for iOS Safari fixed positioning issue with bottom navigation */
 @media (max-width: 768px) {
-  /* Force hardware acceleration and proper positioning on iOS */
-  nav[class*="fixed"][class*="bottom"] {
+  /* Prevent iOS Safari from moving fixed bottom nav when scrolling */
+  body {
+    /* Create a stacking context to prevent fixed element movement */
+    isolation: isolate;
+  }
+  
+  /* Ensure bottom nav stays fixed on iOS */
+  div[class*="fixed"][class*="bottom"] {
     position: fixed !important;
     bottom: 0 !important;
-    transform: translate3d(-50%, 0, 0) !important;
-    -webkit-transform: translate3d(-50%, 0, 0) !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
     will-change: transform !important;
     -webkit-backface-visibility: hidden !important;
     backface-visibility: hidden !important;
+    /* Prevent iOS from moving it */
+    -webkit-overflow-scrolling: touch;
   }
 }
 

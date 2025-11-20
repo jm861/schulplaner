@@ -12,17 +12,20 @@ export function BottomNav() {
 
   return (
     <div 
-      className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-[100] mx-auto w-full max-w-xl md:hidden"
       style={{ 
         position: 'fixed',
         bottom: 0,
-        left: '50%',
-        transform: 'translate3d(-50%, 0, 0)',
-        WebkitTransform: 'translate3d(-50%, 0, 0)',
-        willChange: 'transform',
+        left: 0,
+        right: 0,
+        margin: '0 auto',
+        maxWidth: '42rem',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+        WebkitTransform: 'translateZ(0)',
+        transform: 'translateZ(0)',
         WebkitBackfaceVisibility: 'hidden',
         backfaceVisibility: 'hidden',
-        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))'
+        willChange: 'transform'
       }}
     >
       <nav className="rounded-t-3xl border-t border-slate-200 bg-white/95 px-2 py-2 text-[10px] font-medium text-slate-600 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200">

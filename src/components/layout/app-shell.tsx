@@ -26,23 +26,32 @@ export function AppShell({ children }: AppShellProps) {
     day: 'numeric',
   }).format(new Date());
 
-  // Get user's name from settings or user data
+  // Get user's name - prioritize the logged-in user object first
   const userName = useMemo(() => {
     if (!user) return null;
     
+    // First, use the name from the logged-in user object (most reliable)
+    if (user.name) {
+      return user.name;
+    }
+    
     try {
-      // Try to get name from settings first
+      // Then try to get from users array by matching ID
+      const users = readJSON<Array<{ id: string; name?: string; email?: string }>>('schulplaner:users', []);
+      const currentUser = users.find(u => u.id === user.id || u.email?.toLowerCase().trim() === user.email?.toLowerCase().trim());
+      if (currentUser?.name) {
+        return currentUser.name;
+      }
+      
+      // Last resort: check settings (but this might have wrong user's data)
       const settings = readJSON<{ profile?: { name?: string } }>('schulplaner:settings', {});
       if (settings.profile?.name) {
         return settings.profile.name;
       }
       
-      // Fallback to user data
-      const users = readJSON<Array<{ id: string; name?: string }>>('schulplaner:users', []);
-      const currentUser = users.find(u => u.id === user.id);
-      return currentUser?.name || user.name || null;
+      return null;
     } catch {
-      return user.name || null;
+      return null;
     }
   }, [user]);
 
