@@ -59,7 +59,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100" style={{ position: 'relative' }}>
       <div className="mx-auto flex min-h-screen w-full max-w-[100rem] flex-col gap-6 px-3 py-4 pb-20 sm:gap-8 sm:px-6 sm:py-6 sm:pb-8 md:gap-10 md:px-8 md:py-8 md:pb-8 lg:gap-12 lg:px-20 xl:px-24 2xl:px-28 lg:py-16">
         <header className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-lg backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80 sm:gap-5 sm:rounded-3xl sm:p-6 md:flex-row md:items-center md:justify-between md:gap-6 md:rounded-[36px] md:p-8 md:shadow-[0_30px_60px_-35px_rgba(15,23,42,0.75)]">
           <div className="flex flex-col gap-1.5 sm:gap-2">

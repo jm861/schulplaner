@@ -11,7 +11,21 @@ export function BottomNav() {
   const { t } = useLanguage();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border-t border-slate-200 bg-white/95 px-2 py-2 text-[10px] font-medium text-slate-600 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200 md:hidden safe-area-inset-bottom">
+    <div 
+      className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl md:hidden"
+      style={{ 
+        position: 'fixed',
+        bottom: 0,
+        left: '50%',
+        transform: 'translate3d(-50%, 0, 0)',
+        WebkitTransform: 'translate3d(-50%, 0, 0)',
+        willChange: 'transform',
+        WebkitBackfaceVisibility: 'hidden',
+        backfaceVisibility: 'hidden',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))'
+      }}
+    >
+      <nav className="rounded-t-3xl border-t border-slate-200 bg-white/95 px-2 py-2 text-[10px] font-medium text-slate-600 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200">
       <ul className="flex items-center justify-between gap-1">
         {navLinks.map((link) => {
           const isActive =
@@ -42,7 +56,8 @@ export function BottomNav() {
           );
         })}
       </ul>
-    </nav>
+      </nav>
+    </div>
   );
 }
 

@@ -24,6 +24,22 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Prevent iOS Safari from moving fixed elements when scrolling */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for iOS Safari fixed positioning issue with bottom navigation */
+@media (max-width: 768px) {
+  /* Force hardware acceleration and proper positioning on iOS */
+  nav[class*="fixed"][class*="bottom"] {
+    position: fixed !important;
+    bottom: 0 !important;
+    transform: translate3d(-50%, 0, 0) !important;
+    -webkit-transform: translate3d(-50%, 0, 0) !important;
+    will-change: transform !important;
+    -webkit-backface-visibility: hidden !important;
+    backface-visibility: hidden !important;
+  }
 }
 
 /* Improve touch targets on mobile */
