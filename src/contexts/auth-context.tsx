@@ -84,10 +84,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
-    const foundUser = users.find((u) => u.email === email && u.password === password);
+    try {
+      // Normalize email for comparison (lowercase, trim)
+      const normalizedEmail = email.toLowerCase().trim();
+      const trimmedPassword = password.trim();
+      
+      // Read users - try multiple times on mobile if needed
+      let users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+      
+      // If no users found, try reading again (mobile localStorage timing issue)
+      if (users.length === 0 || (users.length === DEFAULT_USERS.length && normalizedEmail !== 'admin@schulplaner.de' && normalizedEmail !== 'student@schulplaner.de')) {
+        // Wait a bit and try again (for mobile localStorage sync issues)
+        await new Promise(resolve => setTimeout(resolve, 100));
+        users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+      }
+      
+      // Case-insensitive email matching for mobile compatibility
+      const foundUser = users.find((u) => 
+        u.email.toLowerCase().trim() === normalizedEmail && 
+        u.password === trimmedPassword
+      );
 
-    if (foundUser) {
+      if (foundUser) {
       const { password: _, ...userWithoutPassword } = foundUser;
       
       // Update last login time locally
@@ -120,10 +138,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Silently fail - localStorage already updated
       }
       
-      return true;
-    }
+        return true;
+      }
 
-    return false;
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
   const logout = () => {

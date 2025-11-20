@@ -14,6 +14,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -32,13 +33,27 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
-    const success = await login(email, password);
-    setIsLoading(false);
+    // Normalize email (lowercase, trim) for mobile compatibility
+    const normalizedEmail = email.toLowerCase().trim();
+    const trimmedPassword = password.trim();
 
-    if (success) {
-      router.push('/');
-    } else {
-      setError(t('auth.invalidCredentials'));
+    try {
+      const success = await login(normalizedEmail, trimmedPassword);
+      
+      if (success) {
+        // Small delay to ensure state is updated before navigation
+        await new Promise(resolve => setTimeout(resolve, 100));
+        router.push('/');
+        // Force a refresh to ensure auth state is properly set
+        router.refresh();
+      } else {
+        setError(t('auth.invalidCredentials'));
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(t('auth.invalidCredentials') + ' (Error: ' + (err instanceof Error ? err.message : 'Unknown') + ')');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -97,19 +112,33 @@ export default function LoginPage() {
               className={inputStyles}
               placeholder="your.email@example.com"
               required
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
             />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.password')}</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputStyles}
-              placeholder="••••••••"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputStyles}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </label>
 
           {error && (
