@@ -50,7 +50,11 @@ export function PDFUploader({ onClose }: PDFUploaderProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Fehler beim Parsen der PDF');
+        // Show more detailed error message
+        const errorMsg = data.error || 'Fehler beim Parsen der PDF';
+        const details = data.details ? `\n\nDetails: ${data.details}` : '';
+        const hint = data.hint ? `\n\n${data.hint}` : '';
+        throw new Error(errorMsg + details + hint);
       }
 
       setParsedClasses(data.classes || []);

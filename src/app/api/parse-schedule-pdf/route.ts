@@ -46,46 +46,86 @@ export async function POST(req: NextRequest) {
     // Dynamically import pdfjs for serverless compatibility
     let text = '';
     try {
-      // Import pdfjs-dist - use the worker build for serverless
-      const pdfjs = await import('pdfjs-dist');
+      // Try multiple import methods for compatibility
+      let pdfjs: any;
+      let getDocument: any;
       
-      // Use the getDocument function
-      const getDocument = pdfjs.getDocument;
-      
-      if (!getDocument) {
-        throw new Error('PDF.js getDocument function not available');
+      try {
+        // Method 1: Standard import
+        const pdfjsModule = await import('pdfjs-dist');
+        pdfjs = pdfjsModule;
+        getDocument = pdfjsModule.getDocument || (pdfjsModule as any).default?.getDocument;
+      } catch (importError) {
+        console.error('[parse-schedule-pdf] Standard import failed:', importError);
+        try {
+          // Method 2: Legacy build
+          const pdfjsModule = await import('pdfjs-dist/legacy/build/pdf.mjs');
+          pdfjs = pdfjsModule;
+          getDocument = pdfjsModule.getDocument || (pdfjsModule as any).default?.getDocument;
+        } catch (legacyError) {
+          console.error('[parse-schedule-pdf] Legacy import failed:', legacyError);
+          throw new Error(`Failed to import pdfjs-dist: ${importError instanceof Error ? importError.message : 'Unknown error'}`);
+        }
       }
       
-      // Configure worker (not needed for text extraction, but good practice)
-      // For serverless, we can skip worker setup
+      if (!getDocument) {
+        throw new Error('PDF.js getDocument function not available after import');
+      }
       
-      // Parse PDF
+      // Parse PDF with error handling
       const loadingTask = getDocument({
         data: arrayBuffer,
         useSystemFonts: true,
         verbosity: 0, // Suppress warnings
+        isEvalSupported: false, // Disable eval for security
       });
       
       const pdf = await loadingTask.promise;
       
+      if (!pdf || !pdf.numPages) {
+        throw new Error('Invalid PDF structure: no pages found');
+      }
+      
       // Extract text from all pages
       for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => (item.str || '').trim())
-          .filter((str: string) => str.length > 0)
-          .join(' ');
-        text += pageText + '\n';
+        try {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          
+          if (textContent && textContent.items) {
+            const pageText = textContent.items
+              .map((item: any) => {
+                // Handle different item structures
+                if (typeof item === 'string') return item;
+                if (item.str) return item.str;
+                if (item.text) return item.text;
+                return '';
+              })
+              .filter((str: string) => str && str.trim().length > 0)
+              .join(' ')
+              .trim();
+            
+            if (pageText) {
+              text += pageText + '\n';
+            }
+          }
+        } catch (pageError) {
+          console.error(`[parse-schedule-pdf] Error extracting page ${i}:`, pageError);
+          // Continue with other pages
+        }
       }
     } catch (pdfError) {
       console.error('[parse-schedule-pdf] PDF parsing error:', pdfError);
+      console.error('[parse-schedule-pdf] Error stack:', pdfError instanceof Error ? pdfError.stack : 'No stack');
+      
       // Return error with more details for debugging
+      const errorMessage = pdfError instanceof Error ? pdfError.message : String(pdfError);
       return NextResponse.json(
         { 
           error: 'Failed to parse PDF. The file might be corrupted or in an unsupported format.',
-          details: pdfError instanceof Error ? pdfError.message : 'Unknown error',
-          type: pdfError instanceof Error ? pdfError.constructor.name : typeof pdfError
+          details: errorMessage,
+          type: pdfError instanceof Error ? pdfError.constructor.name : typeof pdfError,
+          hint: 'Please ensure the PDF contains selectable text (not just images). Scanned PDFs may not work.'
         },
         { status: 400 }
       );
