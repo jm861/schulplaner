@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Empty config - pdfjs-dist should work with runtime configuration in API route
 };
 
 export default nextConfig;
