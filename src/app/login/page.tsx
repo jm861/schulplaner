@@ -30,6 +30,8 @@ export default function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    event.stopPropagation(); // Prevent mobile browser form handling issues
+    
     setError('');
     setIsLoading(true);
 
@@ -37,22 +39,65 @@ export default function LoginPage() {
     const normalizedEmail = email.toLowerCase().trim();
     const trimmedPassword = password.trim();
 
+    // Validate inputs
+    if (!normalizedEmail || !trimmedPassword) {
+      setError('Bitte fülle alle Felder aus');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const success = await login(normalizedEmail, trimmedPassword);
       
       if (success) {
-        // Small delay to ensure state is updated before navigation
-        await new Promise(resolve => setTimeout(resolve, 100));
-        router.push('/');
-        // Force a refresh to ensure auth state is properly set
-        router.refresh();
+        // On mobile, wait longer for state to update and localStorage to sync
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Use window.location for mobile compatibility (more reliable than router.push)
+        // Check if user state is actually set before navigating
+        const checkUser = () => {
+          try {
+            const authData = localStorage.getItem('schulplaner:auth');
+            if (authData) {
+              return true;
+            }
+          } catch {
+            // localStorage might not be available
+          }
+          return false;
+        };
+        
+        // Give it a moment for mobile localStorage to sync
+        let userSet = checkUser();
+        if (!userSet) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+          userSet = checkUser();
+        }
+        
+        // Navigate - use window.location on mobile for better compatibility
+        if (typeof window !== 'undefined') {
+          // Try router first, fallback to window.location
+          try {
+            router.push('/');
+            // Also set window.location as backup for mobile
+            setTimeout(() => {
+              if (window.location.pathname === '/login') {
+                window.location.href = '/';
+              }
+            }, 300);
+          } catch (navError) {
+            console.warn('[login] Router navigation failed, using window.location:', navError);
+            window.location.href = '/';
+          }
+        }
       } else {
         setError(t('auth.invalidCredentials'));
+        setIsLoading(false);
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setError(t('auth.invalidCredentials') + ' (Error: ' + (err instanceof Error ? err.message : 'Unknown') + ')');
-    } finally {
+      console.error('[login] Login error:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      setError(t('auth.invalidCredentials') + (errorMsg ? ` (${errorMsg})` : ''));
       setIsLoading(false);
     }
   }
@@ -95,8 +140,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50 to-white px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="w-full max-w-md rounded-[32px] border border-slate-200 bg-white/95 p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50 to-white px-4 py-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="w-full max-w-md rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900/80 sm:p-8">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Schulplaner</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{t('auth.loginTitle')}</p>
@@ -129,12 +174,16 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={0}
               >
                 {showPassword ? '👁️' : '👁️‍🗨️'}
               </button>
@@ -151,6 +200,7 @@ export default function LoginPage() {
             type="submit"
             disabled={isLoading}
             className={`${subtleButtonStyles} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+            aria-busy={isLoading}
           >
             {isLoading ? t('auth.loggingIn') : t('auth.login')}
           </button>

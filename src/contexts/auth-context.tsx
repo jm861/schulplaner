@@ -89,23 +89,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email.toLowerCase().trim();
       const trimmedPassword = password.trim();
       
-      // Read users - try multiple times on mobile if needed
-      let users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+      if (!normalizedEmail || !trimmedPassword) {
+        console.error('[auth] Empty email or password');
+        return false;
+      }
       
-      // If no users found, try reading again (mobile localStorage timing issue)
-      if (users.length === 0 || (users.length === DEFAULT_USERS.length && normalizedEmail !== 'admin@schulplaner.de' && normalizedEmail !== 'student@schulplaner.de')) {
-        // Wait a bit and try again (for mobile localStorage sync issues)
-        await new Promise(resolve => setTimeout(resolve, 100));
-        users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+      // Read users - try multiple times on mobile if needed (up to 3 attempts)
+      let users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      // Mobile localStorage might not be ready immediately
+      while (attempts < maxAttempts) {
+        // Check if we need to retry (new user not found in localStorage yet)
+        const isNewUser = normalizedEmail !== 'admin@schulplaner.de' && 
+                          normalizedEmail !== 'student@schulplaner.de' &&
+                          !users.some(u => u.email.toLowerCase().trim() === normalizedEmail);
+        
+        if (isNewUser && attempts < maxAttempts - 1) {
+          // Wait longer on mobile (up to 500ms total)
+          await new Promise(resolve => setTimeout(resolve, 150 * (attempts + 1)));
+          users = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, DEFAULT_USERS);
+          attempts++;
+          continue;
+        }
+        break;
       }
       
       // Case-insensitive email matching for mobile compatibility
-      const foundUser = users.find((u) => 
-        u.email.toLowerCase().trim() === normalizedEmail && 
-        u.password === trimmedPassword
-      );
+      const foundUser = users.find((u) => {
+        const userEmail = u.email.toLowerCase().trim();
+        return userEmail === normalizedEmail && u.password === trimmedPassword;
+      });
 
-      if (foundUser) {
+      if (!foundUser) {
+        console.error('[auth] User not found or password incorrect', {
+          normalizedEmail,
+          userCount: users.length,
+          userEmails: users.map(u => u.email.toLowerCase().trim())
+        });
+        return false;
+      }
+
       const { password: _, ...userWithoutPassword } = foundUser;
       
       // Update last login time locally
@@ -116,34 +141,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginCount: (userWithoutPassword.loginCount || 0) + 1,
       };
       
-      // Update in localStorage
+      // Update in localStorage with retry logic for mobile
       const updatedUsers = users.map((u) =>
         u.id === foundUser.id
           ? { ...u, lastLoginAt: now, loginCount: (u.loginCount || 0) + 1 }
           : u
       );
-      writeJSON(USERS_STORAGE_KEY, updatedUsers);
       
+      // Write with retry on mobile
+      let writeSuccess = writeJSON(USERS_STORAGE_KEY, updatedUsers);
+      if (!writeSuccess) {
+        // Retry once
+        await new Promise(resolve => setTimeout(resolve, 100));
+        writeSuccess = writeJSON(USERS_STORAGE_KEY, updatedUsers);
+      }
+      
+      // Set user state immediately (before localStorage write completes on mobile)
       setUser(updatedUser);
-      writeJSON(AUTH_STORAGE_KEY, { user: updatedUser });
       
-      // Track login server-side (if KV is configured)
-      try {
-        await fetch('/api/track-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: foundUser.id, email: foundUser.email }),
-        });
-      } catch (error) {
+      // Write auth token with retry
+      let authWriteSuccess = writeJSON(AUTH_STORAGE_KEY, { user: updatedUser });
+      if (!authWriteSuccess) {
+        // Retry once
+        await new Promise(resolve => setTimeout(resolve, 100));
+        authWriteSuccess = writeJSON(AUTH_STORAGE_KEY, { user: updatedUser });
+      }
+      
+      if (!writeSuccess || !authWriteSuccess) {
+        console.warn('[auth] localStorage write may have failed, but user is logged in');
+      }
+      
+      // Track login server-side (if KV is configured) - don't block on this
+      fetch('/api/track-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: foundUser.id, email: foundUser.email }),
+      }).catch(error => {
         // Silently fail - localStorage already updated
-      }
+        console.warn('[auth] Failed to track login server-side:', error);
+      });
       
-        return true;
-      }
-
-      return false;
+      return true;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('[auth] Login error:', error);
       return false;
     }
   };
