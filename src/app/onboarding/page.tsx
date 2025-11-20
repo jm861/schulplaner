@@ -13,7 +13,7 @@ import { subtleButtonStyles } from '@/styles/theme';
 export default function OnboardingPage() {
   const { t } = useLanguage();
   const router = useRouter();
-  const { classes } = useSchedule();
+  const { totalClasses } = useSchedule();
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
   const [step, setStep] = useState<'schedule' | 'complete'>('schedule');
 
@@ -75,8 +75,8 @@ export default function OnboardingPage() {
           <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/40">
             <div>
               <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                {classes.length > 0 
-                  ? `${classes.length} ${t('onboarding.classesAdded')}`
+                {totalClasses.length > 0 
+                  ? `${totalClasses.length} ${t('onboarding.classesAdded')}`
                   : t('onboarding.noClassesYet')}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -87,7 +87,7 @@ export default function OnboardingPage() {
               onClick={() => setIsEditingSchedule(true)}
               className={subtleButtonStyles}
             >
-              {classes.length > 0 ? t('onboarding.editSchedule') : t('onboarding.addSchedule')}
+              {totalClasses.length > 0 ? t('onboarding.editSchedule') : t('onboarding.addSchedule')}
             </button>
           </div>
         </div>

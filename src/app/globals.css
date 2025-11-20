@@ -26,7 +26,6 @@ body {
   text-rendering: optimizeLegibility;
   /* Prevent iOS Safari from moving fixed elements when scrolling */
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 120px;
 }
 
 /* Fix for iOS Safari fixed positioning issue with bottom navigation */

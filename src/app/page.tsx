@@ -25,8 +25,9 @@ const focusHighlights = [
 
 export default function Home() {
   const { t } = useLanguage();
-  const { classes } = useSchedule();
+  const { getClassesForDate } = useSchedule();
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  const todaysClasses = getClassesForDate(new Date());
   
   return (
     <div className="space-y-12">
@@ -57,17 +58,17 @@ export default function Home() {
           }
         >
           <ul className="space-y-4">
-            {classes.length === 0 ? (
+            {todaysClasses.length === 0 ? (
               <li className="rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 {t('schedule.noClasses')}
               </li>
             ) : (
-              classes.map((cls) => (
+              todaysClasses.map((cls) => (
                 <li key={cls.id} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-800/50 dark:bg-slate-900/40">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{cls.subject}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{cls.title}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{cls.room || t('schedule.noRoom')}</p>
-                  </div>
+        </div>
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{cls.time}</span>
                 </li>
               ))

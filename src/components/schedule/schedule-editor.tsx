@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react';
 
 import { useLanguage } from '@/contexts/language-context';
-import { useSchedule, type ClassSession } from '@/hooks/use-schedule';
+import { useSchedule, getSubjectColor, type ClassEntry, type DayData } from '@/hooks/use-schedule';
 import { inputStyles, subtleButtonStyles } from '@/styles/theme';
 import { PDFUploader } from './pdf-uploader';
 
@@ -13,41 +13,66 @@ type ScheduleEditorProps = {
 
 export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
   const { t } = useLanguage();
-  const { classes, addClass, updateClass, deleteClass } = useSchedule();
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const {
+    days,
+    addClassToDay,
+    updateClassForDay,
+    removeClassFromDay,
+    ensureDayForDate,
+  } = useSchedule();
+  const [editingContext, setEditingContext] = useState<{
+    dayId: string | null;
+    classId: string | null;
+  }>({ dayId: null, classId: null });
   const [showPDFUploader, setShowPDFUploader] = useState(false);
   const [formData, setFormData] = useState({
+    date: formatDateInput(new Date()),
     time: '',
-    subject: '',
+    title: '',
     room: '',
   });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!formData.time || !formData.subject) return;
+    if (!formData.time || !formData.title || !formData.date) return;
 
-    if (editingId) {
-      updateClass(editingId, formData);
-      setEditingId(null);
+    const targetDay = ensureDayForDate(formData.date);
+    const payload = {
+      id: editingContext.classId ?? undefined,
+      title: formData.title,
+      time: formData.time,
+      room: formData.room,
+      subjectColor: getSubjectColor(formData.title),
+    };
+
+    if (editingContext.classId && editingContext.dayId) {
+      if (editingContext.dayId === targetDay.id) {
+        updateClassForDay(targetDay.id, editingContext.classId, payload);
+      } else {
+        removeClassFromDay(editingContext.dayId, editingContext.classId);
+        addClassToDay(targetDay.id, payload);
+      }
+      setEditingContext({ dayId: null, classId: null });
     } else {
-      addClass(formData);
+      addClassToDay(targetDay.id, payload);
     }
 
-    setFormData({ time: '', subject: '', room: '' });
+    setFormData({ date: formatDateInput(new Date()), time: '', title: '', room: '' });
   }
 
-  function startEdit(cls: ClassSession) {
-    setEditingId(cls.id);
+  function startEdit(day: DayData, cls: ClassEntry) {
+    setEditingContext({ dayId: day.id, classId: cls.id });
     setFormData({
       time: cls.time,
-      subject: cls.subject,
+      title: cls.title,
       room: cls.room,
+      date: day.date,
     });
   }
 
   function cancelEdit() {
-    setEditingId(null);
-    setFormData({ time: '', subject: '', room: '' });
+    setEditingContext({ dayId: null, classId: null });
+    setFormData({ date: formatDateInput(new Date()), time: '', title: '', room: '' });
   }
 
   if (showPDFUploader) {
@@ -104,6 +129,16 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700 dark:text-slate-200">{t('calendar.days')}</span>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+              className={inputStyles}
+              required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-700 dark:text-slate-200">{t('schedule.time')}</span>
             <input
               type="time"
@@ -116,8 +151,8 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-700 dark:text-slate-200">{t('schedule.subject')}</span>
             <input
-              value={formData.subject}
-              onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
+              value={formData.title}
+              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
               className={inputStyles}
               placeholder={t('schedule.subjectPlaceholder')}
               required
@@ -135,9 +170,9 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
         </div>
         <div className="flex gap-2">
           <button type="submit" className={`${subtleButtonStyles} flex-1`}>
-            {editingId ? t('schedule.update') : t('schedule.add')}
+            {editingContext.classId ? t('schedule.update') : t('schedule.add')}
           </button>
-          {editingId && (
+          {editingContext.classId && (
             <button
               type="button"
               onClick={cancelEdit}
@@ -149,41 +184,58 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
         </div>
       </form>
 
-      <div className="space-y-2">
+      <div className="space-y-4">
         <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('schedule.classes')}</h4>
-        <ul className="space-y-2">
-          {classes.map((cls) => (
-            <li
-              key={cls.id}
-              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900/60"
-            >
-              <div className="flex-1">
-                <p className="font-semibold text-slate-900 dark:text-white">{cls.subject}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {cls.time} • {cls.room || t('schedule.noRoom')}
-                </p>
+        <div className="space-y-4">
+          {days
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map((day) => (
+              <div key={day.id} className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                <div className="mb-3 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <span>{new Date(day.date).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                  <span>{day.classes.length} {t('onboarding.classesAdded')}</span>
+                </div>
+                {day.classes.length === 0 ? (
+                  <p className="text-xs text-slate-400 dark:text-slate-500">{t('schedule.noClasses')}</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {day.classes.map((cls) => (
+                      <li key={cls.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900/80">
+                        <div className="flex-1 pr-4">
+                          <p className="font-semibold text-slate-900 dark:text-white">{cls.title}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {cls.time} • {cls.room || t('schedule.noRoom')}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(day, cls)}
+                            className="text-xs font-semibold text-indigo-600 underline decoration-dotted hover:text-indigo-700 dark:text-indigo-400"
+                          >
+                            {t('schedule.edit')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeClassFromDay(day.id, cls.id)}
+                            className="text-xs font-semibold text-rose-500 underline decoration-dotted hover:text-rose-700"
+                          >
+                            {t('schedule.delete')}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => startEdit(cls)}
-                  className="text-xs font-semibold text-indigo-600 underline decoration-dotted hover:text-indigo-700 dark:text-indigo-400"
-                >
-                  {t('schedule.edit')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => deleteClass(cls.id)}
-                  className="text-xs font-semibold text-rose-500 underline decoration-dotted hover:text-rose-700"
-                >
-                  {t('schedule.delete')}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+            ))}
+        </div>
       </div>
     </div>
   );
+}
+
+function formatDateInput(date: Date) {
+  return date.toISOString().split('T')[0];
 }
 

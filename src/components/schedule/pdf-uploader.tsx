@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useLanguage } from '@/contexts/language-context';
-import { useSchedule } from '@/hooks/use-schedule';
+import { useSchedule, getSubjectColor } from '@/hooks/use-schedule';
 import { subtleButtonStyles } from '@/styles/theme';
 
 type ParsedClass = {
@@ -17,11 +17,12 @@ type PDFUploaderProps = {
 
 export function PDFUploader({ onClose }: PDFUploaderProps) {
   const { t } = useLanguage();
-  const { addClass } = useSchedule();
+  const { addClassToDay, ensureDayForDate } = useSchedule();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [parsedClasses, setParsedClasses] = useState<ParsedClass[] | null>(null);
   const [previewText, setPreviewText] = useState<string | null>(null);
+  const [targetDate, setTargetDate] = useState(formatDateInput(new Date()));
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
@@ -74,13 +75,14 @@ export function PDFUploader({ onClose }: PDFUploaderProps) {
 
   function handleImport() {
     if (!parsedClasses || parsedClasses.length === 0) return;
+    const targetDay = ensureDayForDate(targetDate);
 
-    // Add all parsed classes to schedule
     parsedClasses.forEach((cls) => {
-      addClass({
+      addClassToDay(targetDay.id, {
         time: cls.time,
-        subject: cls.subject,
+        title: cls.subject,
         room: cls.room || '',
+        subjectColor: getSubjectColor(cls.subject),
       });
     });
 
@@ -113,9 +115,18 @@ export function PDFUploader({ onClose }: PDFUploaderProps) {
         <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
           Stundenplan aus PDF importieren
         </h4>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
           Lade deinen Stundenplan als PDF hoch. Die App versucht automatisch, Fächer, Zeiten und Räume zu erkennen.
         </p>
+        <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+          Datum für importierte Klassen
+          <input
+            type="date"
+            value={targetDate}
+            onChange={(e) => setTargetDate(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-white dark:focus:border-indigo-300 dark:focus:ring-indigo-900/40"
+          />
+        </label>
       </div>
 
       <div>
@@ -190,5 +201,9 @@ export function PDFUploader({ onClose }: PDFUploaderProps) {
       )}
     </div>
   );
+}
+
+function formatDateInput(date: Date) {
+  return date.toISOString().split('T')[0];
 }
 
