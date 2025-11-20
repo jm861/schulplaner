@@ -24,22 +24,27 @@ export function BottomNav() {
 
   return createPortal(
     <div
-      className="fixed bottom-0 left-0 right-0 z-[100] w-full px-3 md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-[200] w-full px-3 md:hidden"
       style={{
         position: 'fixed',
-        bottom: 0,
+        bottom: 'env(safe-area-inset-bottom)',
         left: 0,
         right: 0,
         width: '100%',
         paddingLeft: '1rem',
         paddingRight: '1rem',
-        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
         boxSizing: 'border-box',
         WebkitTransform: 'translateZ(0)',
         transform: 'translateZ(0)',
+        pointerEvents: 'none',
       }}
     >
-      <nav className="mx-auto w-full max-w-[40rem] rounded-t-3xl border-t border-slate-200 bg-white/95 px-2 py-2 text-[10px] font-medium text-slate-600 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200">
+      <nav
+        className="mx-auto w-full max-w-[40rem] rounded-t-3xl border-t border-slate-200 bg-white/95 px-2 py-2 text-[10px] font-medium text-slate-600 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200"
+        style={{
+          pointerEvents: 'auto',
+        }}
+      >
         <ul className="flex items-center justify-between gap-1">
         {navLinks.map((link) => {
           const isActive =
