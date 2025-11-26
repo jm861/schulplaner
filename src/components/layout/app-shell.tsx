@@ -104,7 +104,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="relative flex justify-center bg-gray-50 text-gray-900 dark:bg-black dark:text-gray-100" style={{ transform: 'none' }}>
-      <div className="flex w-full max-w-[430px] flex-col gap-5 px-4 pb-28 pt-4 sm:max-w-[100rem] sm:gap-8 sm:px-6 sm:pt-6 md:gap-10 md:px-8 md:pb-0 lg:gap-12 lg:px-20 xl:px-24 2xl:px-28 lg:pt-12" style={{ transform: 'none' }}>
+      <div className="flex w-full max-w-[430px] flex-col gap-5 px-4 pb-[max(7rem,calc(7rem+env(safe-area-inset-bottom)))] pt-[max(1rem,env(safe-area-inset-top))] sm:max-w-[100rem] sm:gap-8 sm:px-6 sm:pt-6 md:gap-10 md:px-8 md:pb-0 lg:gap-12 lg:px-20 xl:px-24 2xl:px-28 lg:pt-12" style={{ transform: 'none' }}>
         <header className="flex flex-col gap-3 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:gap-4 sm:p-6 md:flex-row md:items-center md:justify-between md:gap-6 md:p-8">
           <div className="flex flex-col gap-1.5 sm:gap-2">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 sm:text-xs sm:tracking-[0.4em]">

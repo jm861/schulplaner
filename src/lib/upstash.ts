@@ -1,14 +1,14 @@
+import { Redis } from '@upstash/redis';
+
 // Upstash Redis client using official @upstash/redis package
 // Works with both UPSTASH_REDIS_REST_URL/TOKEN and KV_REST_API_URL/TOKEN
+const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
-let redis: any = null;
+let redis: Redis | null = null;
 
 try {
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  
   if (url && token) {
-    const { Redis } = require('@upstash/redis');
     redis = new Redis({
       url,
       token,
@@ -29,7 +29,8 @@ class UpstashClient {
     }
 
     try {
-      const result = await redis.get(key);
+      const client = redis!;
+      const result = await client.get(key);
       if (result === null) {
         return null;
       }
@@ -48,14 +49,15 @@ class UpstashClient {
     }
   }
 
-  async set(key: string, value: any): Promise<void> {
+  async set<T>(key: string, value: T): Promise<void> {
     if (!this.isConfigured()) {
       throw new Error('Upstash not configured');
     }
 
     try {
       // @upstash/redis handles JSON serialization automatically
-      await redis.set(key, value);
+      const client = redis!;
+      await client.set(key, value);
     } catch (error) {
       console.error('[Upstash] SET error:', error);
       throw error;
@@ -68,7 +70,8 @@ class UpstashClient {
     }
 
     try {
-      await redis.del(key);
+      const client = redis!;
+      await client.del(key);
     } catch (error) {
       console.error('[Upstash] DEL error:', error);
       throw error;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 import { generateVerificationCode, storeVerificationCode } from '@/lib/verification';
 
 type SendVerificationPayload = {
@@ -21,21 +22,46 @@ export async function POST(req: NextRequest) {
     const code = generateVerificationCode();
     storeVerificationCode(email, code);
 
-    // In production, send email using a service like Resend, SendGrid, etc.
-    // For now, we'll log it (you can implement actual email sending)
-    console.log(`Verification code for ${email}: ${code}`);
+    // Send email using Resend
+    const resendApiKey = process.env.RESEND_API_KEY;
     
-    // TODO: Implement actual email sending
-    // Example with Resend:
-    // if (process.env.RESEND_API_KEY) {
-    //   const resend = new Resend(process.env.RESEND_API_KEY);
-    //   await resend.emails.send({
-    //     from: 'noreply@schulplaner.de',
-    //     to: email,
-    //     subject: 'Schulplaner - Email Verification',
-    //     html: `<p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`,
-    //   });
-    // }
+    if (resendApiKey) {
+      try {
+        const resend = new Resend(resendApiKey);
+        // Use verified domain for from address
+        const fromAddress = process.env.RESEND_FROM_EMAIL || 'Schulplaner <noreply@meinplan.schule>';
+        
+        await resend.emails.send({
+          from: fromAddress,
+          to: email,
+          subject: 'Schulplaner - E-Mail-Verifizierung',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">E-Mail-Verifizierung</h2>
+              <p>Hallo,</p>
+              <p>dein Verifizierungscode für den Schulplaner lautet:</p>
+              <div style="background-color: #f3f4f6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+                <h1 style="color: #2563eb; font-size: 32px; margin: 0; letter-spacing: 4px;">${code}</h1>
+              </div>
+              <p>Dieser Code ist 10 Minuten gültig.</p>
+              <p>Falls du diese E-Mail nicht angefordert hast, kannst du sie ignorieren.</p>
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+              <p style="color: #6b7280; font-size: 12px;">Schulplaner - Dein digitaler Schulplaner</p>
+            </div>
+          `,
+        });
+        console.log(`[send-verification] Verification code sent to ${email} via Resend`);
+      } catch (emailError) {
+        console.error('[send-verification] Resend error:', emailError);
+        // Fallback: log code in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[send-verification] Fallback - Verification code for ${email}: ${code}`);
+        }
+      }
+    } else {
+      // Fallback: log code if Resend is not configured
+      console.log(`[send-verification] RESEND_API_KEY not configured. Verification code for ${email}: ${code}`);
+    }
 
     return NextResponse.json({
       success: true,

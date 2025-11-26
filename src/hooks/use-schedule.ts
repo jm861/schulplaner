@@ -10,6 +10,8 @@ export interface ClassEntry {
   time: string;
   room: string;
   subjectColor: string;
+  durationMinutes?: number;
+  participants?: string[];
 }
 
 export interface TaskEntry {
@@ -88,6 +90,7 @@ const createDefaultWeek = (): DayData[] => {
             time: '08:00',
             room: 'B201',
             subjectColor: getSubjectColor('Mathematics'),
+            durationMinutes: 45,
           },
           {
             id: crypto.randomUUID(),
@@ -95,6 +98,7 @@ const createDefaultWeek = (): DayData[] => {
             time: '09:15',
             room: 'C102',
             subjectColor: getSubjectColor('English'),
+            durationMinutes: 45,
           },
         ]
       : [];
@@ -110,35 +114,93 @@ const createDefaultWeek = (): DayData[] => {
   return days;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const normalizeClassEntry = (value: unknown): ClassEntry => {
+  if (!isRecord(value)) {
+    return {
+      id: crypto.randomUUID(),
+      title: 'Lesson',
+      time: '08:00',
+      room: '',
+      subjectColor: getSubjectColor(''),
+      durationMinutes: 45,
+      participants: [],
+    };
+  }
+
+  const participants = Array.isArray(value.participants)
+    ? value.participants.filter((participant): participant is string => typeof participant === 'string')
+    : [];
+
+  const title =
+    typeof value.title === 'string'
+      ? value.title
+      : typeof value.subject === 'string'
+        ? value.subject
+        : 'Lesson';
+
+  return {
+    id: typeof value.id === 'string' ? value.id : crypto.randomUUID(),
+    title,
+    time: typeof value.time === 'string' ? value.time : '08:00',
+    room: typeof value.room === 'string' ? value.room : '',
+    subjectColor:
+      typeof value.subjectColor === 'string'
+        ? value.subjectColor
+        : getSubjectColor(typeof value.subject === 'string' ? value.subject : title),
+    durationMinutes: typeof value.durationMinutes === 'number' ? value.durationMinutes : 45,
+    participants,
+  };
+};
+
+const normalizeTaskEntry = (value: unknown, fallbackDate: string): TaskEntry => {
+  if (!isRecord(value)) {
+    return {
+      id: crypto.randomUUID(),
+      title: 'Task',
+      subject: '',
+      due: fallbackDate,
+      subjectColor: getSubjectColor(''),
+    };
+  }
+
+  const subject = typeof value.subject === 'string' ? value.subject : '';
+
+  return {
+    id: typeof value.id === 'string' ? value.id : crypto.randomUUID(),
+    title: typeof value.title === 'string' ? value.title : 'Task',
+    subject,
+    due: typeof value.due === 'string' ? value.due : fallbackDate,
+    subjectColor:
+      typeof value.subjectColor === 'string'
+        ? value.subjectColor
+        : getSubjectColor(subject || (typeof value.title === 'string' ? value.title : '')),
+  };
+};
+
 const normalizeDays = (raw: unknown): DayData[] => {
   if (!Array.isArray(raw)) {
     return createDefaultWeek();
   }
 
-  return raw.map((day: any) => {
-    const date = formatDateKey(day?.date || new Date());
-    const classes: ClassEntry[] = Array.isArray(day?.classes)
-      ? day.classes.map((cls: any) => ({
-          id: typeof cls?.id === 'string' ? cls.id : crypto.randomUUID(),
-          title: cls?.title || cls?.subject || 'Lesson',
-          time: cls?.time || '08:00',
-          room: cls?.room || '',
-          subjectColor: cls?.subjectColor || getSubjectColor(cls?.title || cls?.subject || ''),
-        }))
+  return raw.map((rawDay) => {
+    const dayRecord = isRecord(rawDay) ? rawDay : {};
+    const rawDate = isRecord(dayRecord) ? dayRecord.date : undefined;
+    const date = formatDateKey(
+      typeof rawDate === 'string' || rawDate instanceof Date ? rawDate : new Date()
+    );
+    const classes: ClassEntry[] = Array.isArray(dayRecord.classes)
+      ? dayRecord.classes.map((cls) => normalizeClassEntry(cls))
       : [];
 
-  return {
-      id: typeof day?.id === 'string' ? day.id : crypto.randomUUID(),
+    return {
+      id: typeof dayRecord.id === 'string' ? dayRecord.id : crypto.randomUUID(),
       date,
       classes,
-      tasks: Array.isArray(day?.tasks)
-        ? day.tasks.map((task: any) => ({
-            id: typeof task?.id === 'string' ? task.id : crypto.randomUUID(),
-            title: task?.title || 'Task',
-            subject: task?.subject || '',
-            due: task?.due || date,
-            subjectColor: task?.subjectColor || getSubjectColor(task?.subject || task?.title || ''),
-          }))
+      tasks: Array.isArray(dayRecord.tasks)
+        ? dayRecord.tasks.map((task) => normalizeTaskEntry(task, date))
         : [],
     };
   });
@@ -192,6 +254,11 @@ export function useSchedule() {
           time: classEntry.time || '08:00',
           room: classEntry.room || '',
           subjectColor: classEntry.subjectColor || getSubjectColor(classEntry.title || ''),
+          durationMinutes:
+            typeof classEntry.durationMinutes === 'number' ? classEntry.durationMinutes : 45,
+          participants: Array.isArray(classEntry.participants)
+            ? classEntry.participants.filter((p) => typeof p === 'string')
+            : [],
         };
         const classes = [...day.classes, entry].sort((a, b) => {
           const toMinutes = (val: string) => {
@@ -222,7 +289,18 @@ export function useSchedule() {
           if (day.id !== dayId) return day;
           const classes = day.classes.map((cls) =>
             cls.id === classId
-              ? { ...cls, ...updates, subjectColor: updates.subjectColor || cls.subjectColor }
+              ? {
+                  ...cls,
+                  ...updates,
+                  subjectColor: updates.subjectColor || cls.subjectColor,
+                  durationMinutes:
+                    typeof updates.durationMinutes === 'number'
+                      ? updates.durationMinutes
+                      : cls.durationMinutes,
+                  participants: Array.isArray(updates.participants)
+                    ? updates.participants.filter((p) => typeof p === 'string')
+                    : cls.participants,
+                }
               : cls
           );
           classes.sort((a, b) => {

@@ -50,3 +50,4 @@ The app should remember your login via localStorage. If you have to login every 
 3. Open a new tab and go to the app URL
 4. You should still be logged in (unless you cleared browser data)
 
+

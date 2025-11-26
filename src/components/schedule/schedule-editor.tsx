@@ -30,6 +30,7 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
     time: '',
     title: '',
     room: '',
+    durationMinutes: 45,
   });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -43,6 +44,7 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
       time: formData.time,
       room: formData.room,
       subjectColor: getSubjectColor(formData.title),
+      durationMinutes: formData.durationMinutes,
     };
 
     if (editingContext.classId && editingContext.dayId) {
@@ -57,7 +59,13 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
       addClassToDay(targetDay.id, payload);
     }
 
-    setFormData({ date: formatDateInput(new Date()), time: '', title: '', room: '' });
+    setFormData({
+      date: formatDateInput(new Date()),
+      time: '',
+      title: '',
+      room: '',
+      durationMinutes: 45,
+    });
   }
 
   function startEdit(day: DayData, cls: ClassEntry) {
@@ -67,12 +75,19 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
       title: cls.title,
       room: cls.room,
       date: day.date,
+      durationMinutes: cls.durationMinutes ?? 45,
     });
   }
 
   function cancelEdit() {
     setEditingContext({ dayId: null, classId: null });
-    setFormData({ date: formatDateInput(new Date()), time: '', title: '', room: '' });
+    setFormData({
+      date: formatDateInput(new Date()),
+      time: '',
+      title: '',
+      room: '',
+      durationMinutes: 45,
+    });
   }
 
   if (showPDFUploader) {
@@ -127,7 +142,7 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:grid-cols-4">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-slate-700 dark:text-slate-200">{t('calendar.days')}</span>
             <input
@@ -167,6 +182,17 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
               placeholder={t('schedule.roomPlaceholder')}
             />
           </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700 dark:text-slate-200">{t('schedule.durationLabel')}</span>
+            <input
+              type="number"
+              min={10}
+              step={5}
+              value={formData.durationMinutes}
+              onChange={(e) => setFormData((prev) => ({ ...prev, durationMinutes: Number(e.target.value) || 45 }))}
+              className={inputStyles}
+            />
+          </label>
         </div>
         <div className="flex gap-2">
           <button type="submit" className={`${subtleButtonStyles} flex-1`}>
@@ -204,7 +230,7 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
                         <div className="flex-1 pr-4">
                           <p className="font-semibold text-slate-900 dark:text-white">{cls.title}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {cls.time} • {cls.room || t('schedule.noRoom')}
+                            {formatTimeRange(cls.time, cls.durationMinutes)} • {cls.room || t('schedule.noRoom')}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -237,5 +263,20 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
 
 function formatDateInput(date: Date) {
   return date.toISOString().split('T')[0];
+}
+
+function formatTimeRange(startTime: string, durationMinutes?: number) {
+  if (!durationMinutes) return startTime;
+  const [hours, minutes] = startTime.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return startTime;
+  }
+  const startDate = new Date();
+  startDate.setHours(hours, minutes, 0, 0);
+  const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+  const pad = (val: number) => String(val).padStart(2, '0');
+  return `${pad(startDate.getHours())}:${pad(startDate.getMinutes())} – ${pad(endDate.getHours())}:${pad(
+    endDate.getMinutes()
+  )}`;
 }
 

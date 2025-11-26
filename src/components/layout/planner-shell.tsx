@@ -29,9 +29,9 @@ export function PlannerShell({
   sidebarClassName = 'w-full max-w-sm rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 dark:border-gray-800 dark:bg-gray-900',
 }: PlannerShellProps) {
   return (
-    <div className={`${backgroundClassName} py-4 text-gray-900 dark:text-gray-100 sm:py-6 md:py-8 lg:py-12 w-full max-w-full min-h-0 overflow-x-visible`}>
+    <div className={`${backgroundClassName} pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-gray-900 dark:text-gray-100 sm:pt-6 sm:pb-6 md:pt-8 md:pb-8 lg:pt-12 lg:pb-12 w-full max-w-full min-h-0 overflow-x-visible`}>
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 sm:gap-6 md:gap-8 lg:flex-row lg:items-start px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 overflow-x-visible">
-        <aside className={`${sidebarClassName} lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:w-[384px] lg:flex-shrink-0 lg:min-w-[384px] lg:z-10`}>{sidebar}</aside>
+        <aside className={`${sidebarClassName} lg:sticky lg:top-[max(1rem,env(safe-area-inset-top))] lg:self-start lg:max-h-[calc(100vh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] lg:overflow-y-auto lg:w-[384px] lg:flex-shrink-0 lg:min-w-[384px] lg:z-10`}>{sidebar}</aside>
         <section className={`flex-1 w-full min-w-0 ${mainClassName} overflow-x-auto`}>{children}</section>
       </div>
     </div>

@@ -7,6 +7,7 @@ export type Exam = {
   date: string;
   topics: string;
   notes: string;
+  studyDays?: number; // Number of days to study before the exam
 };
 
 type CreateExamPayload = {
@@ -14,6 +15,7 @@ type CreateExamPayload = {
   date?: string;
   topics?: string;
   notes?: string;
+  studyDays?: number;
 };
 
 const EXAMS_STORAGE_KEY = 'schulplaner:exams';
@@ -33,6 +35,7 @@ export function useExams() {
         date: exam.date ?? '',
         topics: exam.topics ?? '',
         notes: exam.notes ?? '',
+        studyDays: exam.studyDays,
       },
       ...prev,
     ]);

@@ -1,74 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { upstash } from '@/lib/upstash';
-
-type User = {
-  id: string;
-  email: string;
-  name: string;
-  role: 'user' | 'admin' | 'operator';
-  password: string;
-  yearBorn?: string;
-  class?: string;
-  schoolForm?: string;
-  registeredAt?: string;
-  lastLoginAt?: string;
-  loginCount?: number;
-};
-
-// Default users
-const DEFAULT_USERS: User[] = [
-  { id: '1', email: 'admin@schulplaner.de', name: 'Admin User', role: 'admin', password: 'admin123' },
-  { id: '2', email: 'student@schulplaner.de', name: 'Student User', role: 'user', password: 'student123' },
-];
-
-const USERS_KEY = 'schulplaner:users';
-
-// Get users from KV store (or return defaults if KV not configured)
-async function getUsers(): Promise<User[]> {
-  // If Upstash is not configured, return defaults
-  if (!upstash.isConfigured()) {
-    return DEFAULT_USERS;
-  }
-
-  try {
-    const users = await upstash.get<User[]>(USERS_KEY);
-    if (users && Array.isArray(users) && users.length > 0) {
-      return users;
-    }
-    // Initialize with defaults if empty
-    await upstash.set(USERS_KEY, DEFAULT_USERS);
-    return DEFAULT_USERS;
-  } catch (error) {
-    console.error('[getUsers] Upstash error, using defaults:', error);
-    // If Upstash fails, return defaults
-    return DEFAULT_USERS;
-  }
-}
-
-// Save users to KV store (silently fails if KV not configured)
-async function saveUsers(users: User[]): Promise<void> {
-  // If Upstash is not configured, silently skip (localStorage will handle it)
-  if (!upstash.isConfigured()) {
-    return;
-  }
-
-  try {
-    await upstash.set(USERS_KEY, users);
-  } catch (error) {
-    console.error('[saveUsers] Upstash error:', error);
-    // Silently fail - localStorage will still work as fallback
-  }
-}
+import { getStoredUsers, saveStoredUsers, StoredUser as User } from '@/lib/users-server';
 
 // GET /api/users - Get all users (admin/operator only)
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const users = await getUsers();
+    const users = await getStoredUsers();
     
     // In a real app, verify admin/operator role from session/token
     // For now, we'll allow access (you should add authentication middleware)
-    const authHeader = req.headers.get('authorization');
-    
     // Return all users (admins need passwords for management)
     // In production, check if user is admin before returning passwords
     return NextResponse.json({ users });
@@ -84,7 +23,7 @@ export async function GET(req: NextRequest) {
 // POST /api/users - Create or update user
 export async function POST(req: NextRequest) {
   try {
-    const users = await getUsers();
+    const users = await getStoredUsers();
     const body = await req.json() as { action: 'create' | 'update' | 'delete'; user?: User; userId?: string };
     const { action, user, userId } = body;
 
@@ -98,7 +37,7 @@ export async function POST(req: NextRequest) {
         const index = users.findIndex((u) => u.id === user.id);
         const updatedUsers = [...users];
         updatedUsers[index] = user;
-        await saveUsers(updatedUsers);
+        await saveStoredUsers(updatedUsers);
         return NextResponse.json({ success: true, user, action: 'updated' });
       }
       
@@ -112,7 +51,7 @@ export async function POST(req: NextRequest) {
 
       // New user - add it
       const updatedUsers = [...users, user];
-      await saveUsers(updatedUsers);
+      await saveStoredUsers(updatedUsers);
       return NextResponse.json({ success: true, user });
     }
 
@@ -127,13 +66,13 @@ export async function POST(req: NextRequest) {
 
       const updatedUsers = [...users];
       updatedUsers[index] = user;
-      await saveUsers(updatedUsers);
+      await saveStoredUsers(updatedUsers);
       return NextResponse.json({ success: true, user });
     }
 
     if (action === 'delete' && userId) {
       const updatedUsers = users.filter((u) => u.id !== userId);
-      await saveUsers(updatedUsers);
+      await saveStoredUsers(updatedUsers);
       return NextResponse.json({ success: true });
     }
 

@@ -8,7 +8,7 @@ A modern, AI-powered school planner web application built with Next.js, TypeScri
 - ✅ **Task Management** - Create and track homework with priorities and due dates
 - 📝 **Exam Planning** - Plan exams with topics and AI-generated summaries
 - 📚 **Study Plan** - AI-powered weekly study plan generation
-- 🎨 **Dark Mode** - Full dark mode support with system preference detection
+- 📱 **PWA-ready** - Installierbar auf iOS/Android (Add-to-Home-Screen)
 - 🌍 **Multi-language** - English and German (Deutsch) support
 - 🔐 **User Authentication** - Login and registration system
 - 👤 **User Profiles** - Personalized settings and preferences
@@ -169,13 +169,15 @@ Make sure to:
 - Demo data option for new users
 - Editable weekly blueprint
 
-### Settings
-- Profile management
-- Theme toggle (Light/Dark/System)
-- Language selection (English/German)
-- Notification preferences
-- AI assistant preferences
-- Account management and logout
+## Mobile / PWA Installation
+
+Die App ist als Progressive Web App (PWA) konfiguriert:
+
+1. Öffne `https://schulplaner.vercel.app` in Safari auf dem iPhone.
+2. Tippe auf das Teilen-Symbol und wähle **Zum Home-Bildschirm**.
+3. Nach dem Hinzufügen startet Schulplaner im Vollbild ohne Safari UI – wie eine native App.
+
+Offline-Aufrufe zeigen eine kurze Info-Seite; beim nächsten Online-Gang synchronisiert sich die App automatisch.
 
 ## Development
 

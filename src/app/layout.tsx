@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
@@ -6,6 +6,8 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { LanguageProvider } from "@/contexts/language-context";
 import { AuthProvider } from "@/contexts/auth-context";
+import { ServiceWorkerRegistrar } from "@/components/pwa/service-worker-registrar";
+import { UpdatePopup } from "@/components/updates/update-popup";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,14 +25,25 @@ export const metadata: Metadata = {
     template: "%s | Schulplaner",
   },
   description: "Plan classes, tasks, exams, and study sessions with AI support.",
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Schulplaner',
+  },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover', // For safe area insets on iOS
+  themeColor: '#2563EB',
 };
 
 export default function RootLayout({
@@ -47,9 +60,11 @@ export default function RootLayout({
               <ProtectedRoute>
                 <AppShell>{children}</AppShell>
               </ProtectedRoute>
+              <UpdatePopup />
             </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

@@ -48,6 +48,9 @@ body {
   -webkit-overflow-scrolling: touch;
   /* Apple-like subtle background */
   background-color: #fafafa;
+  /* Safe area insets for iOS Dynamic Island / status bar - only applies on iOS devices */
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .dark body {
@@ -125,7 +128,7 @@ body > .mobile-bottom-nav {
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     position: relative;
     width: 100%;
     max-width: 100vw;

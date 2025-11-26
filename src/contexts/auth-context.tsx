@@ -265,7 +265,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('[auth] User found, proceeding with login:', foundUser.email);
 
-      const { password: _, ...userWithoutPassword } = foundUser;
+      const { password: removedPassword, ...userWithoutPassword } = foundUser;
+      void removedPassword;
       
       // Update last login time locally
       const now = new Date().toISOString();

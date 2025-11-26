@@ -102,9 +102,11 @@ export default function VerifyPage() {
           router.push(`/login?verified=true&email=${encodeURIComponent(email)}`);
         }
       } catch (error) {
+        console.error('[verify] account creation', error);
         setError(t('auth.accountCreationFailed'));
       }
     } catch (error) {
+      console.error('[verify] verification', error);
       setIsLoading(false);
       setError(t('auth.verificationFailed'));
     }
@@ -146,6 +148,7 @@ export default function VerifyPage() {
       // Show success message
       alert(t('auth.codeResent'));
     } catch (error) {
+      console.error('[verify] resend', error);
       setIsResending(false);
       setError(t('auth.resendFailed'));
     }

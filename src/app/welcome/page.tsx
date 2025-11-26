@@ -36,6 +36,7 @@ export default function WelcomePage() {
     const fullUser = users.find((u) => u.id === user.id);
     if (fullUser) {
       const { password, ...userWithoutPassword } = fullUser;
+      void password;
       setUserData(userWithoutPassword);
     }
   }, [user, router]);

@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Empty config - pdfjs-dist should work with runtime configuration in API route
+  // Enable static export for mobile builds (Capacitor)
+  output: process.env.MOBILE_BUILD === 'true' ? 'export' : undefined,
 };
 
 export default nextConfig;
