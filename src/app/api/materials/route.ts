@@ -224,10 +224,29 @@ export async function POST(req: NextRequest) {
     let sourceType: MaterialRecord['sourceType'] = 'pdf';
 
     if (isPdf) {
-      const { text, pageCount } = await extractTextFromPdf(arrayBuffer);
-      extractedText = text;
-      meta.pageCount = pageCount;
-      sourceType = 'pdf';
+      try {
+        const { text, pageCount } = await extractTextFromPdf(arrayBuffer);
+        extractedText = text;
+        meta.pageCount = pageCount;
+        sourceType = 'pdf';
+      } catch (pdfError: any) {
+        // Handle PDF extraction errors
+        const errorMessage = pdfError?.message || String(pdfError);
+        console.error('[materials] PDF extraction error:', errorMessage);
+        
+        return NextResponse.json(
+          {
+            ok: false,
+            status: 500,
+            raw: JSON.stringify({
+              message: errorMessage,
+              type: 'pdf_extraction',
+              error: pdfError,
+            }),
+          },
+          { status: 500 },
+        );
+      }
     } else {
       try {
         const buffer = Buffer.from(arrayBuffer);
