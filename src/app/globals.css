@@ -132,7 +132,7 @@ body > .mobile-bottom-nav {
   }
 }
 
-/* Desktop: Prevent extra scroll space */
+/* Desktop: Prevent extra scroll space and ensure sidebar is visible */
 @media (min-width: 769px) {
   html {
     height: auto;
@@ -141,6 +141,21 @@ body > .mobile-bottom-nav {
   body {
     height: auto;
     padding-bottom: 0;
+  }
+  
+  /* Ensure PlannerShell sidebar is always fully visible on desktop */
+  [class*="PlannerShell"] {
+    overflow-x: visible !important;
+  }
+  
+  [class*="PlannerShell"] > div {
+    overflow-x: visible !important;
+  }
+  
+  /* Ensure sidebar is not cut off */
+  [class*="PlannerShell"] aside {
+    position: relative !important;
+    z-index: 10;
   }
 }
 
