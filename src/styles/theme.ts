@@ -1,9 +1,13 @@
+// Apple-like design system
 export const inputStyles =
-  'w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3.5 text-base text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-indigo-300 dark:focus:ring-indigo-900/40 sm:rounded-2xl sm:py-3 touch-manipulation';
+  'w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-base text-gray-900 placeholder:text-gray-400 shadow-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-blue-400 dark:focus:ring-blue-400/20 sm:py-3 touch-manipulation';
 
 export const textareaStyles = `${inputStyles} min-h-[120px] sm:min-h-[140px]`;
 export const selectStyles = inputStyles;
 
 export const subtleButtonStyles =
-  'rounded-xl border border-slate-200 bg-white/90 px-5 py-3 font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 active:scale-[0.97] dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800 sm:rounded-2xl sm:py-2 touch-manipulation min-h-[44px] sm:min-h-0';
+  'rounded-2xl border border-gray-200 bg-white px-5 py-3 font-semibold text-gray-900 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 sm:py-2.5 touch-manipulation min-h-[44px] sm:min-h-0';
+
+export const primaryButtonStyles =
+  'rounded-2xl bg-blue-500 px-6 py-3 font-semibold text-white shadow-sm transition-all hover:bg-blue-600 hover:shadow-md active:scale-[0.98] dark:bg-blue-600 dark:hover:bg-blue-700 touch-manipulation min-h-[44px] sm:min-h-0';
 

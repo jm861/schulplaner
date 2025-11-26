@@ -2,14 +2,17 @@
 
 import { useState, FormEvent } from 'react';
 
-import { PageHeader } from '@/components/ui/page-header';
 import { SectionCard } from '@/components/ui/section-card';
 import { useLanguage } from '@/contexts/language-context';
+import { useAuth } from '@/contexts/auth-context';
 import { useTasks } from '@/hooks/use-tasks';
 import { inputStyles, selectStyles } from '@/styles/theme';
+import { PlannerShell, PlannerNav } from '@/components/layout/planner-shell';
+import { buildPlannerNavItems } from '@/lib/planner-nav';
 
 export default function TasksPage() {
   const { t } = useLanguage();
+  const { isAdmin, isOperator } = useAuth();
   const { sortedTasks, addTask, deleteTask, toggleTask } = useTasks();
   
   const quickActions = [
@@ -56,20 +59,43 @@ export default function TasksPage() {
     }).format(new Date(value));
   };
 
-  return (
-    <div className="space-y-12">
-      <PageHeader
-        badge="Tasks"
-        title={t('tasks.title')}
-        description={t('tasks.description')}
-      />
+  const openTasks = tasksSorted.filter((task) => !task.done).length;
+  const completedTasks = tasksSorted.length - openTasks;
+  const navItems = buildPlannerNavItems(t, { isAdmin, isOperator });
+  const quickStatsText = t('tasks.quickStats').replace('{count}', String(tasksSorted.length));
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+  return (
+    <PlannerShell
+      sidebar={
+        <>
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Q1 1. Term</p>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{t('tasks.title')}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('tasks.description')}</p>
+          </div>
+          <PlannerNav items={navItems} label={t('planner.navigation')} />
+          <div className="mt-8 space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Open</p>
+                <p className="text-3xl font-semibold text-gray-900 dark:text-white">{openTasks}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Done</p>
+                <p className="text-3xl font-semibold text-gray-900 dark:text-white">{completedTasks}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">{quickStatsText}</p>
+          </div>
+        </>
+      }
+    >
+      <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-2">
           <SectionCard title={t('tasks.createTask')}>
             <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
               <label className="flex flex-col gap-1">
-                <span className="font-medium text-slate-700 dark:text-slate-200">{t('tasks.taskTitle')}</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{t('tasks.taskTitle')}</span>
                 <input
                   value={formData.title}
                   onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
@@ -79,7 +105,7 @@ export default function TasksPage() {
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="font-medium text-slate-700 dark:text-slate-200">{t('tasks.subject')}</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{t('tasks.subject')}</span>
                 <input
                   value={formData.subject}
                   onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
@@ -89,7 +115,7 @@ export default function TasksPage() {
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="font-medium text-slate-700 dark:text-slate-200">{t('tasks.dueDate')}</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{t('tasks.dueDate')}</span>
                 <input
                   type="datetime-local"
                   value={formData.dueDate}
@@ -99,7 +125,7 @@ export default function TasksPage() {
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="font-medium text-slate-700 dark:text-slate-200">{t('tasks.priority')}</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{t('tasks.priority')}</span>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData((prev) => ({ ...prev, priority: e.target.value }))}
@@ -113,7 +139,7 @@ export default function TasksPage() {
 
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-slate-900 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                className="w-full rounded-2xl bg-blue-500 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-600 hover:shadow-md active:scale-[0.98] dark:bg-blue-600 dark:hover:bg-blue-700"
               >
                 {t('tasks.addTask')}
               </button>
@@ -125,79 +151,87 @@ export default function TasksPage() {
               {tasksSorted.map((task) => (
                 <li
                   key={task.id}
-                  className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900/60"
+                  className="space-y-3 rounded-2xl border border-gray-200 bg-white px-4 py-4 text-sm shadow-sm dark:border-gray-700 dark:bg-gray-800"
                 >
-                  <input
-                    type="checkbox"
-                    checked={task.done}
-                    onChange={() => toggleTask(task.id)}
-                    className="h-5 w-5 rounded border-slate-300 text-slate-900 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-900"
-                  />
-                  <div className="flex-1">
-                    <p className={`font-semibold ${task.done ? 'text-slate-400 line-through' : 'text-slate-900 dark:text-white'}`}>
-                      {task.title}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatDueDate(task.dueDate)} • {task.subject || t('common.general')}
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={task.done}
+                      onChange={() => toggleTask(task.id)}
+                      className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold ${task.done ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>
+                        {task.title}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {formatDueDate(task.dueDate)} • {task.subject || t('common.general')}
+                      </p>
+                    </div>
                   </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      task.priority === 'High'
-                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200'
-                        : task.priority === 'Medium'
-                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200'
-                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200'
-                    }`}
-                  >
-                    {task.priority}
-                  </span>
-                  <button
-                    onClick={() => toggleTask(task.id)}
-                    className="text-xs font-semibold text-slate-500 underline decoration-dotted hover:text-slate-900 dark:text-slate-300"
-                  >
-                    {task.done ? t('tasks.undo') : t('tasks.done')}
-                  </button>
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    className="text-xs font-semibold text-rose-500 underline decoration-dotted hover:text-rose-700"
-                  >
-                    {t('tasks.delete')}
-                  </button>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <span
+                      className={`inline-flex min-w-[90px] justify-center rounded-full px-3 py-1 text-xs font-semibold ${
+                        task.priority === 'High'
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                          : task.priority === 'Medium'
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                            : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                      }`}
+                    >
+                      {task.priority}
+                    </span>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+                      <button
+                        onClick={() => toggleTask(task.id)}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 sm:w-auto"
+                      >
+                        {task.done ? t('tasks.undo') : t('tasks.done')}
+                      </button>
+                      <button
+                        onClick={() => deleteTask(task.id)}
+                        className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-all hover:bg-red-100 active:scale-[0.98] dark:border-red-900 dark:bg-red-950/50 dark:text-red-300 dark:hover:bg-red-900/50 sm:w-auto"
+                      >
+                        {t('tasks.delete')}
+                      </button>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>
           </SectionCard>
         </div>
 
-        <SectionCard title={t('tasks.focusTimer')}>
-          <div className="space-y-3">
-            {['25 min deep focus', '45 min review block', '90 min project'].map((preset) => (
-              <button
-                key={preset}
-                className="flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-900 transition hover:bg-slate-100 dark:border-slate-800 dark:text-white dark:hover:bg-slate-800"
-              >
-                {preset}
-                <span className="text-xs text-slate-500 dark:text-slate-400">Start</span>
-              </button>
-            ))}
-          </div>
-        </SectionCard>
+        <div className="space-y-6">
+          <SectionCard title={t('tasks.focusTimer')}>
+            <div className="space-y-3">
+              {['25 min deep focus', '45 min review block', '90 min project'].map((preset) => (
+                <button
+                  key={preset}
+                  className="flex w-full items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left text-sm font-semibold text-gray-900 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+                >
+                  {preset}
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Start</span>
+                </button>
+              ))}
+            </div>
+          </SectionCard>
 
-        <SectionCard title={t('tasks.quickActions')}>
-          <ul className="space-y-3">
-            {quickActions.map((action) => (
-              <li
-                key={action}
-                className="rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
-              >
-                {action}
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
+          <SectionCard title={t('tasks.quickActions')}>
+            <ul className="space-y-3">
+              {quickActions.map((action) => (
+                <li
+                  key={action}
+                  className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                >
+                  {action}
+                </li>
+              ))}
+            </ul>
+          </SectionCard>
+        </div>
       </div>
-    </div>
+    </PlannerShell>
   );
 }
 

@@ -36,6 +36,8 @@ export default function RegisterPage() {
     class: '',
     schoolForm: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -142,22 +144,23 @@ export default function RegisterPage() {
         setError('Registrierung erfolgreich, aber automatische Anmeldung fehlgeschlagen. Bitte melde dich manuell an.');
       }
     } catch (error) {
+      console.error('[register] Registration failed:', error);
       setIsLoading(false);
       setError(t('auth.registrationFailed'));
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50 to-white px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="w-full max-w-md rounded-[32px] border border-slate-200 bg-white/95 p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8 dark:bg-black">
+      <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Schulplaner</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{t('auth.registerTitle')}</p>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Schulplaner</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auth.registerTitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.fullName')}</span>
+            <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.fullName')}</span>
             <input
               type="text"
               value={formData.name}
@@ -169,7 +172,7 @@ export default function RegisterPage() {
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.email')}</span>
+            <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.email')}</span>
             <input
               type="email"
               value={formData.email}
@@ -181,38 +184,68 @@ export default function RegisterPage() {
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.password')}</span>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-              className={inputStyles}
-              placeholder="••••••••"
-              required
-              minLength={6}
-            />
+            <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.password')}</span>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                className={inputStyles}
+                placeholder="••••••••"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                tabIndex={0}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.confirmPassword')}</span>
-            <input
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-              className={inputStyles}
-              placeholder="••••••••"
-              required
-              minLength={6}
-            />
+            <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.confirmPassword')}</span>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                className={inputStyles}
+                placeholder="••••••••"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label={showConfirmPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                tabIndex={0}
+              >
+                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </label>
 
-          <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="border-t border-gray-200 pt-4 dark:border-gray-800">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               {t('auth.additionalInfo')}
             </p>
             
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.yearBorn')}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.yearBorn')}</span>
               <input
                 type="number"
                 value={formData.yearBorn}
@@ -225,7 +258,7 @@ export default function RegisterPage() {
             </label>
 
             <label className="flex flex-col gap-1 text-sm mt-4">
-              <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.class')}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.class')}</span>
               <input
                 type="text"
                 value={formData.class}
@@ -236,7 +269,7 @@ export default function RegisterPage() {
             </label>
 
             <label className="flex flex-col gap-1 text-sm mt-4">
-              <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.schoolForm')}</span>
+              <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.schoolForm')}</span>
               <select
                 value={formData.schoolForm}
                 onChange={(e) => setFormData((prev) => ({ ...prev, schoolForm: e.target.value }))}
@@ -255,7 +288,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="rounded-2xl border border-rose-400 bg-rose-50/50 p-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-100">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/50 dark:text-red-100">
               {error}
             </div>
           )}
@@ -263,16 +296,16 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`${subtleButtonStyles} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+            className="w-full rounded-2xl bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-600 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-700"
           >
             {isLoading ? t('auth.creatingAccount') : t('auth.createAccount')}
           </button>
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-gray-600 dark:text-gray-400">
             {t('auth.alreadyHaveAccount')}{' '}
-            <Link href="/login" className="font-semibold text-indigo-600 underline decoration-dotted hover:text-indigo-700 dark:text-indigo-400">
+            <Link href="/login" className="font-semibold text-blue-600 underline decoration-dotted hover:text-blue-700 dark:text-blue-400">
               {t('auth.signIn')}
             </Link>
           </p>

@@ -14,7 +14,21 @@ type AppShellProps = {
   children: ReactNode;
 };
 
-const PUBLIC_ROUTES = ['/login', '/register'];
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password'];
+// Routes that use PlannerShell and should bypass AppShell wrapper
+const PLANNER_SHELL_ROUTES = [
+  '/',
+  '/calendar',
+  '/tasks',
+  '/exams',
+  '/study-plan',
+  '/settings',
+  '/materials',
+  '/chat',
+  '/substitution-plan',
+  '/onboarding',
+  '/welcome',
+];
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
@@ -65,9 +79,17 @@ export function AppShell({ children }: AppShellProps) {
 
   // Determine greeting based on time of day
   const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    const isMorning = hour >= 5 && hour < 18; // 5 AM to 6 PM is morning/day
-    return isMorning ? t('common.goodMorning') : t('common.goodEvening');
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const isMorning = hour < 11 || (hour === 11 && minute < 30);
+    if (hour >= 18 || hour < 5) {
+      return t('common.goodEvening');
+    }
+    if (isMorning && hour >= 5) {
+      return t('common.goodMorning');
+    }
+    return t('common.hello');
   }, [t]);
 
   // For public routes like login, render children directly without shell
@@ -75,55 +97,31 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
+  // For routes that use PlannerShell, render children directly (PlannerShell handles its own layout)
+  if (PLANNER_SHELL_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+    return <>{children}</>;
+  }
+
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-slate-100 via-slate-50 to-white text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100" style={{ position: 'relative', paddingBottom: '120px' }}>
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[100rem] flex-col gap-6 px-3 py-4 pb-28 sm:gap-8 sm:px-6 sm:py-6 sm:pb-16 md:gap-10 md:px-8 md:py-8 md:pb-16 lg:gap-12 lg:px-20 xl:px-24 2xl:px-28 lg:py-16">
-        <header className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-lg backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80 sm:gap-5 sm:rounded-3xl sm:p-6 md:flex-row md:items-center md:justify-between md:gap-6 md:rounded-[36px] md:p-8 md:shadow-[0_30px_60px_-35px_rgba(15,23,42,0.75)]">
+    <div className="relative flex min-h-[100dvh] justify-center bg-gray-50 text-gray-900 dark:bg-black dark:text-gray-100" style={{ transform: 'none' }}>
+      <div className="flex w-full max-w-[430px] flex-col gap-5 px-4 pb-28 pt-4 sm:max-w-[100rem] sm:gap-8 sm:px-6 sm:pt-6 md:gap-10 md:px-8 md:pb-16 lg:gap-12 lg:px-20 xl:px-24 2xl:px-28 lg:pt-12" style={{ transform: 'none' }}>
+        <header className="flex flex-col gap-3 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:gap-4 sm:p-6 md:flex-row md:items-center md:justify-between md:gap-6 md:p-8">
           <div className="flex flex-col gap-1.5 sm:gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-xs sm:tracking-[0.4em]">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 sm:text-xs sm:tracking-[0.4em]">
               Schulplaner
             </p>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
+              <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-2xl md:text-3xl">
                 {userName ? `${greeting}, ${userName}` : 'Daily Flow'}
               </h1>
-              <p className="text-xs text-slate-500 sm:text-sm">{today}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 sm:text-sm">{today}</p>
             </div>
           </div>
           <MainNav className="hidden md:flex" />
         </header>
 
-        <section className="grid grid-cols-2 gap-2.5 text-xs text-slate-600 dark:text-slate-300 sm:gap-3 sm:text-sm sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="rounded-2xl border border-slate-200 bg-white/60 px-3 py-3 shadow-sm backdrop-blur transition active:scale-95 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-indigo-500/40 sm:rounded-3xl sm:px-4 sm:py-3.5 md:px-5 md:py-4"
-            >
-              <p className="font-medium text-slate-900 dark:text-white text-[11px] leading-tight sm:text-sm">{t(link.labelKey)}</p>
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5 sm:text-xs sm:mt-1">{t(link.descriptionKey)}</p>
-            </a>
-          ))}
-          {(isAdmin || isOperator) && (
-            <a
-              href="/admin"
-              className={`rounded-3xl border px-5 py-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 ${
-                isAdmin
-                  ? 'border-indigo-200 bg-indigo-50/60 hover:border-indigo-300 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/50 dark:hover:border-indigo-700'
-                  : 'border-amber-200 bg-amber-50/60 hover:border-amber-300 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/50 dark:hover:border-amber-700'
-              }`}
-            >
-              <p className={`font-medium ${isAdmin ? 'text-indigo-900 dark:text-indigo-100' : 'text-amber-900 dark:text-amber-100'}`}>
-                {isAdmin ? 'Admin' : 'Operator'}
-              </p>
-              <p className={`text-xs ${isAdmin ? 'text-indigo-600 dark:text-indigo-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                Dashboard
-              </p>
-            </a>
-          )}
-        </section>
 
-        <main className="flex-1 rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 sm:rounded-3xl sm:p-6 md:rounded-[36px] md:p-8 md:shadow-[0_30px_60px_-45px_rgba(15,23,42,0.8)] xl:p-16">
+        <main className="flex-1 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-3xl sm:p-6 md:rounded-3xl md:p-8 xl:p-16">
           {children}
         </main>
       </div>

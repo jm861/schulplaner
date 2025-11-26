@@ -118,14 +118,14 @@ export default function LoginPage() {
 
   if (user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50 to-white px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="w-full max-w-md rounded-[32px] border border-slate-200 bg-white/95 p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-black">
+        <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-800 dark:bg-gray-900">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Schulplaner</h1>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{t('auth.alreadyLoggedIn')}</p>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Schulplaner</h1>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auth.alreadyLoggedIn')}</p>
           </div>
           <div className="space-y-4">
-            <p className="text-center text-sm text-slate-600 dark:text-slate-300">
+            <p className="text-center text-sm text-gray-700 dark:text-gray-300">
               {t('auth.loggedInAs')} <strong>{user.email}</strong>
             </p>
             <div className="flex gap-3">
@@ -149,16 +149,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50 to-white px-4 py-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="w-full max-w-md rounded-[32px] border border-slate-200 bg-white/95 p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900/80 sm:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8 dark:bg-black">
+      <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Schulplaner</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{t('auth.loginTitle')}</p>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Schulplaner</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('auth.loginTitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.email')}</span>
+            <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.email')}</span>
             <input
               type="email"
               value={email}
@@ -173,7 +173,7 @@ export default function LoginPage() {
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700 dark:text-slate-200">{t('auth.password')}</span>
+            <span className="font-medium text-gray-700 dark:text-gray-200">{t('auth.password')}</span>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -190,7 +190,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 tabIndex={0}
               >
@@ -200,7 +200,7 @@ export default function LoginPage() {
           </label>
 
           {error && (
-            <div className="rounded-2xl border border-rose-400 bg-rose-50/50 p-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-100">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/50 dark:text-red-100">
               {error}
             </div>
           )}
@@ -208,17 +208,26 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`${subtleButtonStyles} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+            className="w-full rounded-2xl bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-600 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-700"
             aria-busy={isLoading}
           >
             {isLoading ? t('auth.loggingIn') : t('auth.login')}
           </button>
         </form>
 
+        <div className="mt-4 text-center">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-semibold text-blue-600 underline decoration-dotted hover:text-blue-700 dark:text-blue-400"
+          >
+            {t('auth.forgotPassword')}
+          </Link>
+        </div>
+
         <div className="mt-6 text-center">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-gray-600 dark:text-gray-400">
             {t('auth.dontHaveAccount')}{' '}
-            <Link href="/register" className="font-semibold text-indigo-600 underline decoration-dotted hover:text-indigo-700 dark:text-indigo-400">
+            <Link href="/register" className="font-semibold text-blue-600 underline decoration-dotted hover:text-blue-700 dark:text-blue-400">
               {t('auth.createAccount')}
             </Link>
           </p>
