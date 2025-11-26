@@ -234,17 +234,33 @@ export async function POST(req: NextRequest) {
         const errorMessage = pdfError?.message || String(pdfError);
         console.error('[materials] PDF extraction error:', errorMessage);
         
+        // Determine appropriate status code based on error type
+        let statusCode = 500;
+        let userMessage = errorMessage;
+        
+        if (errorMessage.includes('Kein Text im PDF gefunden') || errorMessage.includes('No text found')) {
+          statusCode = 400; // Bad Request - PDF has no extractable text
+          userMessage = 'Kein Text im PDF gefunden. Das PDF enthält möglicherweise nur Bilder oder ist gescannt. Bitte verwende die Foto-Upload-Funktion für gescannte Dokumente.';
+        } else if (errorMessage.includes('PDF-Parsing-Fehler') || errorMessage.includes('PDF parsing')) {
+          statusCode = 400; // Bad Request - PDF is corrupted or invalid
+          userMessage = 'PDF konnte nicht gelesen werden. Bitte stelle sicher, dass die Datei ein gültiges PDF ist.';
+        } else if (errorMessage.includes('Text-Extraktion fehlgeschlagen')) {
+          statusCode = 500; // Server error during extraction
+          userMessage = 'Text-Extraktion aus PDF fehlgeschlagen. Bitte versuche es erneut oder verwende ein anderes PDF.';
+        }
+        
         return NextResponse.json(
           {
             ok: false,
-            status: 500,
+            status: statusCode,
             raw: JSON.stringify({
               message: errorMessage,
+              userMessage: userMessage,
               type: 'pdf_extraction',
-              error: pdfError,
             }),
+            error: userMessage, // Add user-friendly error message
           },
-          { status: 500 },
+          { status: statusCode },
         );
       }
     } else {
