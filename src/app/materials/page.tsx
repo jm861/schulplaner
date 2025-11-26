@@ -114,23 +114,40 @@ export default function MaterialsPage() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || (data as any).ok === false) {
-        const errorData = data as { ok?: boolean; status?: number; raw?: string; error?: string };
+        const errorData = data as { ok?: boolean; status?: number; raw?: string; error?: string; userMessage?: string };
         const status = errorData.status || res.status;
         const raw = errorData.raw || '';
         
         let errorMsg = 'Upload fehlgeschlagen.';
-        if (status === 429) {
+        
+        // Prioritize user-friendly error message if available
+        if (errorData.userMessage) {
+          errorMsg = errorData.userMessage;
+        } else if (errorData.error) {
+          errorMsg = errorData.error;
+        } else if (status === 429) {
           errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
         } else if (status === 401) {
           errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
         } else if (status === 500) {
           errorMsg = 'Interner Serverfehler beim Upload/OCR.';
-        } else if (errorData.error) {
-          errorMsg = errorData.error;
+        } else if (status === 400) {
+          // Bad Request - try to extract user-friendly message
+          try {
+            const rawParsed = JSON.parse(raw);
+            errorMsg = rawParsed.userMessage || rawParsed.message || 'Ungültige Datei oder Format.';
+          } catch {
+            errorMsg = 'Ungültige Datei oder Format.';
+          }
         } else {
           try {
             const rawParsed = JSON.parse(raw);
-            errorMsg = `Fehler: ${rawParsed.message || raw}`;
+            const rawMessage = rawParsed.userMessage || rawParsed.message || '';
+            if (rawMessage) {
+              errorMsg = rawMessage;
+            } else {
+              errorMsg = `Fehler: ${raw || status}`;
+            }
           } catch {
             errorMsg = `Upload fehlgeschlagen: ${raw || status}`;
           }
