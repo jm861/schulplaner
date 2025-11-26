@@ -188,7 +188,7 @@ export default function MaterialsPage() {
       const data = await res.json();
 
       if (!res.ok || (data as any).ok === false) {
-        const errorData = data as { ok?: boolean; status?: number; raw?: string };
+        const errorData = data as { ok?: boolean; status?: number; raw?: string; error?: string };
         const status = errorData.status || res.status;
         const raw = errorData.raw || '';
         
@@ -199,12 +199,36 @@ export default function MaterialsPage() {
           errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
         } else if (status === 500) {
           errorMsg = 'Interner Serverfehler beim Zusammenfassen.';
+        } else if (errorData.error) {
+          // Check if error message is in English and translate common ones
+          const errorText = errorData.error.toLowerCase();
+          if (errorText.includes('rate limit') || errorText.includes('rate_limit')) {
+            errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
+          } else if (errorText.includes('api key') || errorText.includes('unauthorized')) {
+            errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
+          } else {
+            errorMsg = errorData.error;
+          }
         } else {
           try {
             const rawParsed = JSON.parse(raw);
-            errorMsg = `Fehler: ${rawParsed.message || raw}`;
+            const rawMessage = rawParsed.message || '';
+            // Translate common English error messages
+            if (rawMessage.toLowerCase().includes('rate limit') || rawMessage.toLowerCase().includes('rate_limit')) {
+              errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
+            } else if (rawMessage.toLowerCase().includes('api key') || rawMessage.toLowerCase().includes('unauthorized')) {
+              errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
+            } else {
+              errorMsg = `Fehler: ${rawMessage || raw}`;
+            }
           } catch {
-            errorMsg = `Unbekannter Fehler: ${raw || status}`;
+            // If raw is not JSON, check if it contains English error messages
+            const rawLower = raw.toLowerCase();
+            if (rawLower.includes('rate limit') || rawLower.includes('rate_limit') || rawLower.includes('please try again in a moment')) {
+              errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
+            } else {
+              errorMsg = `Unbekannter Fehler: ${raw || status}`;
+            }
           }
         }
         
