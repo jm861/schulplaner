@@ -131,22 +131,22 @@ export default function StudyPlanPage() {
       sidebar={
         <>
           <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400">Study Plan</p>
-            <h2 className="text-2xl font-semibold text-white">{t('studyPlan.title')}</h2>
-            <p className="text-sm text-slate-400">{t('studyPlan.description')}</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Study Plan</p>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{t('studyPlan.title')}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('studyPlan.description')}</p>
           </div>
           <PlannerNav items={navItems} label={t('planner.navigation')} />
-          <div className="mt-8 space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Slots</p>
-            <p className="text-3xl font-semibold text-white">{slots.length}</p>
-            <p className="text-xs text-slate-400">{t('studyPlan.slotsConfigured')}</p>
+          <div className="mt-8 space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Slots</p>
+            <p className="text-3xl font-semibold text-gray-900 dark:text-white">{slots.length}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">{t('studyPlan.slotsConfigured')}</p>
           </div>
         </>
       }
     >
       {isEditingPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-[32px] border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+          <div className="w-full max-w-2xl rounded-3xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900">
             <WeeklyPlanEditor onClose={() => setIsEditingPlan(false)} />
           </div>
         </div>
@@ -167,7 +167,7 @@ export default function StudyPlanPage() {
               )}
               <button
                 onClick={() => setIsEditingPlan(true)}
-                className="text-sm font-semibold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400"
+                className="text-sm font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
               >
                 {t('studyPlan.editPlan')}
               </button>
@@ -175,8 +175,8 @@ export default function StudyPlanPage() {
           }
         >
           {slots.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/20">
-              <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-8 text-center dark:border-gray-700 dark:bg-gray-900/20">
+              <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">
                 {t('studyPlan.noSlots')}
               </p>
               <button
@@ -191,14 +191,14 @@ export default function StudyPlanPage() {
               {slots.map((slot) => (
                 <li
                   key={slot.id}
-                  className="rounded-2xl border border-slate-100 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/40"
+                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
                 >
                   <div className="flex items-center justify-between text-sm">
-                    <p className="font-semibold text-slate-900 dark:text-white">{slot.day}</p>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">{slot.duration}</span>
+                    <p className="font-semibold text-gray-900 dark:text-white">{slot.day}</p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{slot.duration}</span>
                   </div>
-                  <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{slot.focus}</p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{slot.aiNote}</p>
+                  <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">{slot.focus}</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{slot.aiNote}</p>
                 </li>
               ))}
             </ul>
@@ -221,7 +221,7 @@ export default function StudyPlanPage() {
                     }
                   }, 100);
                 }}
-                className="cursor-pointer rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-900 active:scale-[0.98] dark:border-slate-700 dark:text-slate-200 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-100"
+                className="cursor-pointer rounded-2xl border border-dashed border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-900 active:scale-[0.98] dark:border-gray-700 dark:text-gray-200 dark:hover:border-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-100"
                 title={t('studyPlan.clickToUse')}
               >
                 {prompt}
@@ -231,11 +231,11 @@ export default function StudyPlanPage() {
         </SectionCard>
 
         <SectionCard title={t('studyPlan.energyTracker')}>
-          <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
-            <p className="rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
-              🔋 <span className="font-semibold text-slate-900 dark:text-white">Peak window 08:00–11:30</span> — schedule intense subjects here.
+          <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+            <p className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+              🔋 <span className="font-semibold text-gray-900 dark:text-white">Peak window 08:00–11:30</span> — schedule intense subjects here.
             </p>
-            <p className="rounded-2xl border border-slate-200 px-4 py-3 dark:border-slate-800">
+            <p className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
               🌙 Evenings best for review only. Keep AI summaries short and reflective.
             </p>
           </div>
@@ -245,7 +245,7 @@ export default function StudyPlanPage() {
           <SectionCard title={t('studyPlan.generatePlan')}>
             <div className="space-y-4 text-sm">
               <label className="flex flex-col gap-2">
-                <span className="font-medium text-slate-700 dark:text-slate-200">{t('studyPlan.focusLabel')}</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200">{t('studyPlan.focusLabel')}</span>
                 <textarea
                   rows={3}
                   value={focusInput}
@@ -301,7 +301,7 @@ export default function StudyPlanPage() {
               {aiPlan ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Generierter Lernplan
                     </p>
                     <button
@@ -354,7 +354,7 @@ export default function StudyPlanPage() {
                     className={`rounded-2xl border p-6 transition-all ${
                       isAdded
                         ? 'border-green-300 bg-green-50/80 dark:border-green-700 dark:bg-green-950/40'
-                        : 'border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-900/40'
+                        : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
                     }`}
                   >
                     {isAdded && (
@@ -375,10 +375,10 @@ export default function StudyPlanPage() {
                         Zum Plan hinzugefügt
                       </div>
                     )}
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {aiPlan.title}
                     </h3>
-                    <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                    <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
                       {aiPlan.overview}
                     </p>
                     <div className="mt-4 space-y-2">

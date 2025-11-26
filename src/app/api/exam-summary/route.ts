@@ -107,8 +107,10 @@ export async function POST(req: NextRequest) {
         },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.7, // Increased for more variation
-      max_tokens: 1500, // Increased for more detailed summaries
+      temperature: 0.7,
+      max_tokens: 2000, // Increased for more detailed summaries
+    }, {
+      timeout: 30000, // 30 second timeout
     });
 
     const summary = response.choices[0]?.message?.content?.trim() ?? fallbackExamSummary({ subject, topics, notes });
@@ -116,8 +118,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ summary });
   } catch (error) {
     console.error('[exam-summary] Error:', error);
+    
+    // Handle specific OpenAI errors
+    if (error instanceof Error) {
+      if (error.message.includes('rate_limit') || error.message.includes('429')) {
+        return NextResponse.json(
+          { error: 'Rate limit exceeded. Please try again in a moment.' },
+          { status: 429 },
+        );
+      }
+      if (error.message.includes('timeout')) {
+        return NextResponse.json(
+          { error: 'Request timed out. Please try again.' },
+          { status: 504 },
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Exam summary generation failed.' },
+      { error: 'Exam summary generation failed. Please try again.' },
       { status: 500 },
     );
   }

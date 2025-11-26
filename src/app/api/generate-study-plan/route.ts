@@ -380,6 +380,8 @@ Du antwortest ausschließlich mit gültigem JSON im Format {"title":"...","overv
       temperature: 0.8, // Balanced creativity and consistency
       max_tokens: 4000, // More tokens for comprehensive overview
       response_format: { type: 'json_object' },
+    }, {
+      timeout: 60000, // 60 second timeout for longer responses
     });
 
     let plan: StudyPlan | null = null;

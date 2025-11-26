@@ -84,28 +84,32 @@ async function extractTextFromImage(buffer: Buffer, mimeType: string) {
   const base64 = buffer.toString('base64');
   const dataUrl = `data:${mimeType};base64,${base64}`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: [
-              'Extrahiere jeden lesbaren Text aus diesem Foto oder Scan.',
-              'Antworte ausschließlich mit dem Klartext, ohne Kommentare oder Formatierung.',
-            ].join(' '),
-          },
-          {
-            type: 'image_url',
-            image_url: { url: dataUrl },
-          },
-        ],
-      },
-    ],
-    temperature: 0,
-  });
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: [
+                'Extrahiere jeden lesbaren Text aus diesem Foto oder Scan.',
+                'Antworte ausschließlich mit dem Klartext, ohne Kommentare oder Formatierung.',
+                'Erhalte die Struktur (Absätze, Listen) wenn möglich.',
+              ].join(' '),
+            },
+            {
+              type: 'image_url',
+              image_url: { url: dataUrl },
+            },
+          ],
+        },
+      ],
+      temperature: 0,
+      max_tokens: 2000, // Increased for longer text extraction
+    }, {
+      timeout: 30000, // 30 second timeout
+    });
 
   const text = response.choices[0].message.content?.trim() ?? '';
   if (!text) {

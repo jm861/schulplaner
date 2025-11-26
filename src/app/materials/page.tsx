@@ -211,15 +211,15 @@ export default function MaterialsPage() {
       sidebar={
         <>
           <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400">Materials</p>
-            <h2 className="text-2xl font-semibold text-white">{t('materials.title')}</h2>
-            <p className="text-sm text-slate-400">{t('materials.description')}</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Materials</p>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{t('materials.title')}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('materials.description')}</p>
           </div>
           <PlannerNav items={navItems} label={t('planner.navigation')} />
-          <div className="mt-8 space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Gespeichert</p>
-            <p className="text-3xl font-semibold text-white">{materials.length}</p>
-            <p className="text-xs text-slate-400">{t('materials.materialsStored')}</p>
+          <div className="mt-8 space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Gespeichert</p>
+            <p className="text-3xl font-semibold text-gray-900 dark:text-white">{materials.length}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">{t('materials.materialsStored')}</p>
           </div>
         </>
       }
