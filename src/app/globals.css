@@ -143,8 +143,9 @@ body > .mobile-bottom-nav {
     padding-bottom: 0;
   }
 }
-  
-  /* Prevent transforms on parent containers that could affect fixed children */
+
+/* Prevent transforms on parent containers that could affect fixed children */
+@media (max-width: 768px) {
   body > div:not(.mobile-bottom-nav) {
     transform: none !important;
     max-width: 100vw !important;
