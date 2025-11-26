@@ -14,6 +14,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { subtleButtonStyles } from "@/styles/theme";
 import { PlannerShell, PlannerNav } from '@/components/layout/planner-shell';
 import { buildPlannerNavItems } from '@/lib/planner-nav';
+import { readJSON } from '@/lib/storage';
 
 const afternoonActivities = [
   { title: "Basketball practice", time: "15:30", duration: "75 min" },
@@ -44,13 +45,61 @@ function formatTimeRange(startTime: string, durationMinutes?: number) {
 
 export default function Home() {
   const { t } = useLanguage();
-  const { isAdmin, isOperator } = useAuth();
+  const { user, isAdmin, isOperator } = useAuth();
   const { getClassesForDate } = useSchedule();
   const { tasks, sortedTasks } = useTasks();
   const { sortedExams } = useExams();
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
   const todaysClasses = getClassesForDate(new Date());
   const navItems = buildPlannerNavItems(t, { isAdmin, isOperator });
+  
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Guten Morgen';
+    if (hour < 18) return 'Guten Tag';
+    return 'Guten Abend';
+  };
+  
+  // Get user's name - same logic as AppShell
+  const getUserName = () => {
+    if (!user) return null;
+    
+    // First, use the name from the logged-in user object (most reliable)
+    if (user.name) {
+      return user.name;
+    }
+    
+    try {
+      // Then try to get from users array by matching ID or email
+      const users = readJSON<Array<{ id: string; name?: string; email?: string }>>('schulplaner:users', []);
+      const currentUser = users.find(
+        (u) =>
+          u.id === user.id ||
+          u.email?.toLowerCase().trim() === user.email?.toLowerCase().trim()
+      );
+      if (currentUser?.name) {
+        return currentUser.name;
+      }
+      
+      // Last resort: check settings, but ensure it matches the current user
+      const settings = readJSON<{ profile?: { name?: string; email?: string } }>('schulplaner:settings', {});
+      if (
+        settings.profile?.name &&
+        (!settings.profile?.email ||
+          settings.profile.email.toLowerCase().trim() === user.email?.toLowerCase().trim())
+      ) {
+        return settings.profile.name;
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  };
+  
+  const greeting = getGreeting();
+  const userName = getUserName();
   
   // Get today's tasks
   const today = new Date();
@@ -77,7 +126,9 @@ export default function Home() {
         <>
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Dashboard</p>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{t('home.title')}</h2>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">
+              {userName ? `${greeting}, ${userName}` : t('home.title')}
+            </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">{t('home.description')}</p>
           </div>
           <PlannerNav items={navItems} label={t('planner.navigation')} />
