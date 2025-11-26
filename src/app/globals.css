@@ -42,7 +42,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  min-height: 100vh;
   overflow-x: hidden;
   margin: 0;
   /* Prevent iOS Safari from moving fixed elements when scrolling */

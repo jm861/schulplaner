@@ -29,10 +29,10 @@ export function PlannerShell({
   sidebarClassName = 'w-full max-w-sm rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 dark:border-gray-800 dark:bg-gray-900 lg:h-auto lg:flex-shrink-0',
 }: PlannerShellProps) {
   return (
-    <div className={`min-h-screen ${backgroundClassName} px-4 py-4 text-gray-900 dark:text-gray-100 sm:px-6 sm:py-6 md:px-8 md:py-8 lg:px-12 lg:py-12 overflow-x-hidden w-full max-w-full`}>
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-6 md:gap-8 lg:flex-row lg:items-stretch">
+    <div className={`${backgroundClassName} px-4 py-4 text-gray-900 dark:text-gray-100 sm:px-6 sm:py-6 md:px-8 md:py-8 lg:px-12 lg:py-12 overflow-x-hidden w-full max-w-full`}>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-6 md:gap-8 lg:flex-row lg:items-start">
         <aside className={`${sidebarClassName}`}>{sidebar}</aside>
-        <section className={`flex-1 min-h-0 w-full min-w-0 ${mainClassName} overflow-x-auto`}>{children}</section>
+        <section className={`flex-1 w-full min-w-0 ${mainClassName} overflow-x-auto`}>{children}</section>
       </div>
     </div>
   );
