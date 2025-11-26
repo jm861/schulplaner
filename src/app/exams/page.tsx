@@ -178,6 +178,8 @@ export default function ExamsPage() {
   }
 
   async function handleGenerateSummary() {
+    if (isGenerating) return; // Prevent multiple simultaneous requests
+    
     try {
       setIsGenerating(true);
       setErrorMessage(null);
@@ -194,13 +196,34 @@ export default function ExamsPage() {
         }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Konnte Zusammenfassung nicht erstellen.');
+      const data = await response.json();
+
+      if (!response.ok || (data as any).ok === false) {
+        const errorData = data as { ok?: boolean; status?: number; raw?: string };
+        const status = errorData.status || response.status;
+        const raw = errorData.raw || '';
+        
+        let errorMsg = 'Unbekannter Fehler';
+        if (status === 429) {
+          errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
+        } else if (status === 401) {
+          errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
+        } else if (status === 500) {
+          errorMsg = 'Interner Serverfehler beim Zusammenfassen.';
+        } else {
+          try {
+            const rawParsed = JSON.parse(raw);
+            errorMsg = `Fehler: ${rawParsed.message || raw}`;
+          } catch {
+            errorMsg = `Unbekannter Fehler: ${raw || status}`;
+          }
+        }
+        
+        setErrorMessage(errorMsg);
+        return;
       }
 
-      const data = (await response.json()) as { summary?: string };
-      setSummary(data.summary ?? 'Keine Zusammenfassung verfügbar.');
+      setSummary((data as { summary?: string }).summary ?? 'Keine Zusammenfassung verfügbar.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unbekannter Fehler.');
     } finally {

@@ -98,45 +98,61 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
       .join('\n');
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Du bist ein erfahrener, kreativer Lerncoach mit Expertise in verschiedenen Fächern. Du erstellst immer einzigartige, spezifische Lernzusammenfassungen, die genau auf die gegebene Prüfung zugeschnitten sind. Jede Zusammenfassung ist anders und maßgeschneidert.',
+    let response;
+    try {
+      response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Du bist ein erfahrener, kreativer Lerncoach mit Expertise in verschiedenen Fächern. Du erstellst immer einzigartige, spezifische Lernzusammenfassungen, die genau auf die gegebene Prüfung zugeschnitten sind. Jede Zusammenfassung ist anders und maßgeschneidert.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }, {
+        timeout: 30000,
+      });
+    } catch (openaiError: any) {
+      // Extract error details from OpenAI SDK error
+      const errorStatus = openaiError?.status || openaiError?.response?.status || 500;
+      const errorMessage = openaiError?.message || String(openaiError);
+      const errorBody = openaiError?.response?.data || openaiError?.error || {};
+      const rawError = JSON.stringify({
+        message: errorMessage,
+        status: errorStatus,
+        body: errorBody,
+        stack: openaiError?.stack,
+      });
+
+      console.error('[exam-summary] OPENAI_FEHLER', errorStatus, rawError);
+      
+      return NextResponse.json(
+        { 
+          ok: false,
+          status: errorStatus,
+          raw: rawError,
         },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000, // Increased for more detailed summaries
-    }, {
-      timeout: 30000, // 30 second timeout
-    });
+        { status: errorStatus },
+      );
+    }
 
     const summary = response.choices[0]?.message?.content?.trim() ?? fallbackExamSummary({ subject, topics, notes });
 
     return NextResponse.json({ summary });
   } catch (error) {
-    console.error('[exam-summary] Error:', error);
+    console.error('[exam-summary] Unexpected Error:', error);
     
-    // Handle specific OpenAI errors
-    if (error instanceof Error) {
-      if (error.message.includes('rate_limit') || error.message.includes('429')) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded. Please try again in a moment.' },
-          { status: 429 },
-        );
-      }
-      if (error.message.includes('timeout')) {
-        return NextResponse.json(
-          { error: 'Request timed out. Please try again.' },
-          { status: 504 },
-        );
-      }
-    }
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const rawError = JSON.stringify({ message: errorMessage, type: 'unexpected' });
     
     return NextResponse.json(
-      { error: 'Exam summary generation failed. Please try again.' },
+      { 
+        ok: false,
+        status: 500,
+        raw: rawError,
+      },
       { status: 500 },
     );
   }

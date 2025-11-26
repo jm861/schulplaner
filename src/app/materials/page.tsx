@@ -86,6 +86,8 @@ export default function MaterialsPage() {
   };
 
   const handleUpload = async () => {
+    if (isUploading) return; // Prevent multiple simultaneous requests
+    
     if (!selectedFile || !user) {
       setUploadError('Bitte wähle eine Datei aus.');
       return;
@@ -109,14 +111,37 @@ export default function MaterialsPage() {
         body: formData,
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        const detail = data?.details ? ` (${data.details})` : '';
-        throw new Error((data?.error ?? 'Upload fehlgeschlagen.') + detail);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || (data as any).ok === false) {
+        const errorData = data as { ok?: boolean; status?: number; raw?: string; error?: string };
+        const status = errorData.status || res.status;
+        const raw = errorData.raw || '';
+        
+        let errorMsg = 'Upload fehlgeschlagen.';
+        if (status === 429) {
+          errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
+        } else if (status === 401) {
+          errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
+        } else if (status === 500) {
+          errorMsg = 'Interner Serverfehler beim Upload/OCR.';
+        } else if (errorData.error) {
+          errorMsg = errorData.error;
+        } else {
+          try {
+            const rawParsed = JSON.parse(raw);
+            errorMsg = `Fehler: ${rawParsed.message || raw}`;
+          } catch {
+            errorMsg = `Upload fehlgeschlagen: ${raw || status}`;
+          }
+        }
+        
+        setUploadError(errorMsg);
+        setUploadSuccess(false);
+        return;
       }
 
-      const data = (await res.json()) as { material: MaterialRecord };
-      setMaterials((prev) => [data.material, ...prev]);
+      setMaterials((prev) => [(data as { material: MaterialRecord }).material, ...prev]);
       setSelectedFile(null);
       setCustomTitle('');
       setUploadError(null);
@@ -133,6 +158,11 @@ export default function MaterialsPage() {
 
   const handleGenerateSummary = async (material: MaterialRecord) => {
     if (!material?.text) return;
+    
+    // Prevent multiple simultaneous requests for same material
+    const currentState = summaries[material.id];
+    if (currentState?.loading) return;
+    
     setSummaries((prev) => ({
       ...prev,
       [material.id]: { loading: true },
@@ -155,15 +185,39 @@ export default function MaterialsPage() {
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Zusammenfassung fehlgeschlagen.');
+      const data = await res.json();
+
+      if (!res.ok || (data as any).ok === false) {
+        const errorData = data as { ok?: boolean; status?: number; raw?: string };
+        const status = errorData.status || res.status;
+        const raw = errorData.raw || '';
+        
+        let errorMsg = 'Unbekannter Fehler';
+        if (status === 429) {
+          errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
+        } else if (status === 401) {
+          errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
+        } else if (status === 500) {
+          errorMsg = 'Interner Serverfehler beim Zusammenfassen.';
+        } else {
+          try {
+            const rawParsed = JSON.parse(raw);
+            errorMsg = `Fehler: ${rawParsed.message || raw}`;
+          } catch {
+            errorMsg = `Unbekannter Fehler: ${raw || status}`;
+          }
+        }
+        
+        setSummaries((prev) => ({
+          ...prev,
+          [material.id]: { loading: false, error: errorMsg },
+        }));
+        return;
       }
 
-      const data = (await res.json()) as { summary?: string };
       setSummaries((prev) => ({
         ...prev,
-        [material.id]: { loading: false, text: data.summary ?? 'Keine Zusammenfassung verfügbar.' },
+        [material.id]: { loading: false, text: (data as { summary?: string }).summary ?? 'Keine Zusammenfassung verfügbar.' },
       }));
     } catch (error) {
       setSummaries((prev) => ({

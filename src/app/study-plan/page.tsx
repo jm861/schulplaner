@@ -55,6 +55,8 @@ export default function StudyPlanPage() {
   const [isAdded, setIsAdded] = useState(false);
 
   async function handleGeneratePlan(retryCount = 0) {
+    if (isGenerating) return; // Prevent multiple simultaneous requests
+    
     if (!focusInput.trim()) {
       setErrorMessage('Bitte gib einen Lernfokus an.');
       return;
@@ -74,28 +76,38 @@ export default function StudyPlanPage() {
         }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        const errorMessage = data.error || 'Plan konnte nicht erstellt werden.';
+      const data = await response.json();
+
+      if (!response.ok || (data as any).ok === false) {
+        const errorData = data as { ok?: boolean; status?: number; raw?: string };
+        const status = errorData.status || response.status;
+        const raw = errorData.raw || '';
         
-        // Don't auto-retry for rate limits - let user retry manually
-        if (response.status === 429) {
-          throw new Error('rate_limit');
+        let errorMsg = 'Unbekannter Fehler';
+        if (status === 429) {
+          errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
+        } else if (status === 401) {
+          errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
+        } else if (status === 500) {
+          errorMsg = 'Interner Serverfehler beim Zusammenfassen.';
+        } else {
+          try {
+            const rawParsed = JSON.parse(raw);
+            errorMsg = `Fehler: ${rawParsed.message || raw}`;
+          } catch {
+            errorMsg = `Unbekannter Fehler: ${raw || status}`;
+          }
         }
         
-        throw new Error(errorMessage);
+        setErrorMessage(errorMsg);
+        return;
       }
 
-      const data = (await response.json()) as { plan?: AIStudyPlan };
-      setAiPlan(data.plan || null);
+      setAiPlan((data as { plan?: AIStudyPlan }).plan || null);
       setIsAdded(false);
       setErrorMessage(null);
     } catch (error) {
-      if (error instanceof Error && error.message === 'rate_limit') {
-        setErrorMessage('rate_limit');
-      } else {
-        setErrorMessage(error instanceof Error ? error.message : 'Unbekannter Fehler.');
-      }
+      setErrorMessage(error instanceof Error ? error.message : 'Unbekannter Fehler.');
     } finally {
       setIsGenerating(false);
     }
@@ -264,35 +276,39 @@ export default function StudyPlanPage() {
                   {isGenerating ? t('studyPlan.generatePlan') + '…' : t('studyPlan.generatePlan')}
                 </button>
                 {errorMessage ? (
-                  <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 dark:border-rose-800 dark:bg-rose-950/40">
-                    <p className="text-sm font-semibold text-rose-700 dark:text-rose-300 mb-2">
-                      {errorMessage.includes('OPENAI_API_KEY') || errorMessage.includes('not configured') ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/40">
+                    <p className="text-sm font-semibold text-red-700 dark:text-red-300 mb-2">
+                      {errorMessage.includes('Rate limit') || errorMessage.includes('rate limit') ? (
                         <>
-                          <span className="block mb-2">⚠️ {t('studyPlan.openaiNotConfigured')}</span>
-                          <span className="text-xs font-normal text-rose-600 dark:text-rose-400 block">
-                            {t('studyPlan.openaiNotConfiguredDescription')}
-                          </span>
-                          <span className="text-xs font-normal text-rose-600 dark:text-rose-400 block mt-1">
-                            {t('studyPlan.openaiNotConfiguredHint')}
-                          </span>
-                        </>
-                      ) : errorMessage === 'rate_limit' || errorMessage.includes('rate limit') ? (
-                        <>
-                          <span className="block mb-2">⏱️ {t('studyPlan.rateLimitExceeded')}</span>
-                          <span className="text-xs font-normal text-rose-600 dark:text-rose-400 block mb-3">
-                            {t('studyPlan.rateLimitDescription')}
-                          </span>
+                          <span className="block mb-2">⏱️ Rate limit exceeded. Bitte warte kurz.</span>
                           <button
                             type="button"
                             onClick={handleGenerateClick}
                             disabled={isGenerating}
-                            className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="mt-3 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {isGenerating ? t('studyPlan.generating') : t('studyPlan.retry')}
+                            {isGenerating ? 'Generiere…' : 'Erneut versuchen'}
                           </button>
                         </>
+                      ) : errorMessage.includes('API Key') || errorMessage.includes('ungültig') ? (
+                        <>
+                          <span className="block mb-2">⚠️ OpenAI API Key ungültig oder falsch konfiguriert.</span>
+                          <span className="text-xs font-normal text-red-600 dark:text-red-400 block">
+                            Bitte überprüfe deine Umgebungsvariablen.
+                          </span>
+                        </>
                       ) : (
-                        errorMessage
+                        <>
+                          <span className="block mb-2">⚠️ {errorMessage}</span>
+                          <button
+                            type="button"
+                            onClick={handleGenerateClick}
+                            disabled={isGenerating}
+                            className="mt-3 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isGenerating ? 'Generiere…' : 'Erneut versuchen'}
+                          </button>
+                        </>
                       )}
                     </p>
                   </div>

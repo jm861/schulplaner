@@ -84,7 +84,9 @@ async function extractTextFromImage(buffer: Buffer, mimeType: string) {
   const base64 = buffer.toString('base64');
   const dataUrl = `data:${mimeType};base64,${base64}`;
 
-    const response = await openai.chat.completions.create({
+  let response;
+  try {
+    response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -106,10 +108,31 @@ async function extractTextFromImage(buffer: Buffer, mimeType: string) {
         },
       ],
       temperature: 0,
-      max_tokens: 2000, // Increased for longer text extraction
+      max_tokens: 2000,
     }, {
-      timeout: 30000, // 30 second timeout
+      timeout: 30000,
     });
+  } catch (openaiError: any) {
+    // Extract error details from OpenAI SDK error
+    const errorStatus = openaiError?.status || openaiError?.response?.status || 500;
+    const errorMessage = openaiError?.message || String(openaiError);
+    const errorBody = openaiError?.response?.data || openaiError?.error || {};
+    const rawError = JSON.stringify({
+      message: errorMessage,
+      status: errorStatus,
+      body: errorBody,
+      stack: openaiError?.stack,
+      function: 'extractTextFromImage',
+    });
+
+    console.error('[materials] OPENAI_FEHLER (OCR)', errorStatus, rawError);
+    
+    // Re-throw with structured error info
+    const error = new Error(`OCR failed: ${errorMessage}`);
+    (error as any).status = errorStatus;
+    (error as any).raw = rawError;
+    throw error;
+  }
 
   const text = response.choices[0].message.content?.trim() ?? '';
   if (!text) {
@@ -206,10 +229,27 @@ export async function POST(req: NextRequest) {
       meta.pageCount = pageCount;
       sourceType = 'pdf';
     } else {
-      const buffer = Buffer.from(arrayBuffer);
-      extractedText = await extractTextFromImage(buffer, file.type);
-      sourceType = 'image';
-      meta.lang = 'deu+eng';
+      try {
+        const buffer = Buffer.from(arrayBuffer);
+        extractedText = await extractTextFromImage(buffer, file.type);
+        sourceType = 'image';
+        meta.lang = 'deu+eng';
+      } catch (ocrError: any) {
+        // Handle OCR errors with structured response
+        const errorStatus = ocrError?.status || 500;
+        const rawError = ocrError?.raw || JSON.stringify({ message: ocrError?.message || String(ocrError) });
+        
+        console.error('[materials] OPENAI_FEHLER (OCR in POST)', errorStatus, rawError);
+        
+        return NextResponse.json(
+          { 
+            ok: false,
+            status: errorStatus,
+            raw: rawError,
+          },
+          { status: errorStatus },
+        );
+      }
     }
 
     if (!extractedText || extractedText.trim().length === 0) {
@@ -240,10 +280,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ material: newEntry });
   } catch (error) {
     console.error('[materials] POST error:', error);
+    
+    // If error already has structured format, return it
+    if (error && typeof error === 'object' && 'status' in error && 'raw' in error) {
+      return NextResponse.json(
+        {
+          ok: false,
+          status: (error as any).status,
+          raw: (error as any).raw,
+        },
+        { status: (error as any).status },
+      );
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const rawError = JSON.stringify({ message: errorMessage, type: 'unexpected' });
+    
     return NextResponse.json(
       {
-        error: 'Upload oder OCR fehlgeschlagen.',
-        details: error instanceof Error ? error.message : String(error),
+        ok: false,
+        status: 500,
+        raw: rawError,
       },
       { status: 500 },
     );

@@ -161,6 +161,8 @@ WICHTIG: Verwende NUR die Informationen aus dem Input. Erfinde nichts.`;
         temperature: 0.3,
         max_tokens: 500,
         response_format: { type: 'json_object' },
+      }, {
+        timeout: 30000,
       });
 
       const analysisContent = analysisResponse.choices[0]?.message?.content?.trim();
@@ -173,8 +175,18 @@ WICHTIG: Verwende NUR die Informationen aus dem Input. Erfinde nichts.`;
           console.warn('[generate-study-plan] Failed to parse analysis:', e);
         }
       }
-    } catch (error) {
-      console.warn('[generate-study-plan] Analysis step failed, continuing with direct generation:', error);
+    } catch (openaiError: any) {
+      // Log analysis error but continue - analysis is optional
+      const errorStatus = openaiError?.status || openaiError?.response?.status || 500;
+      const errorMessage = openaiError?.message || String(openaiError);
+      const errorBody = openaiError?.response?.data || openaiError?.error || {};
+      const rawError = JSON.stringify({
+        message: errorMessage,
+        status: errorStatus,
+        body: errorBody,
+        step: 'analysis',
+      });
+      console.warn('[generate-study-plan] Analysis step failed, continuing with direct generation:', errorStatus, rawError);
     }
 
     // Deep analysis of focus input
@@ -332,12 +344,14 @@ WICHTIG: Verwende NUR die Informationen aus dem Input. Erfinde nichts.`;
       .filter(Boolean)
       .join('\n');
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // Use more powerful model for better understanding
-      messages: [
-        {
-          role: 'system',
-          content: `Du bist ein hochqualifizierter Lerncoach mit umfassendem Wissen. Du erstellst individuelle, maßgeschneiderte Lernpläne mit einer GESAMTEN, UMFASSENDEN Zusammenfassung des Themas.
+    let response;
+    try {
+      response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `Du bist ein hochqualifizierter Lerncoach mit umfassendem Wissen. Du erstellst individuelle, maßgeschneiderte Lernpläne mit einer GESAMTEN, UMFASSENDEN Zusammenfassung des Themas.
 
 KRITISCH - DIE OVERVIEW IST DAS WICHTIGSTE:
 ✅ Die "overview" MUSS eine GESAMTE, UMFASSENDE Zusammenfassung des Themas sein (mindestens 200-300 Wörter)
@@ -374,15 +388,39 @@ PRÜFE VOR DEM ABSENDEN:
 - Sind die Recherche-Schritte über den gesamten Plan verteilt?
 
 Du antwortest ausschließlich mit gültigem JSON im Format {"title":"...","overview":"[GESAMTE ZUSAMMENFASSUNG - mindestens 200-300 Wörter]","steps":[...],"tips":[...],"estimatedDuration":"..."}.`,
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 4000,
+        response_format: { type: 'json_object' },
+      }, {
+        timeout: 60000,
+      });
+    } catch (openaiError: any) {
+      // Extract error details from OpenAI SDK error
+      const errorStatus = openaiError?.status || openaiError?.response?.status || 500;
+      const errorMessage = openaiError?.message || String(openaiError);
+      const errorBody = openaiError?.response?.data || openaiError?.error || {};
+      const rawError = JSON.stringify({
+        message: errorMessage,
+        status: errorStatus,
+        body: errorBody,
+        stack: openaiError?.stack,
+        step: 'main_generation',
+      });
+
+      console.error('[generate-study-plan] OPENAI_FEHLER', errorStatus, rawError);
+      
+      return NextResponse.json(
+        { 
+          ok: false,
+          status: errorStatus,
+          raw: rawError,
         },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.8, // Balanced creativity and consistency
-      max_tokens: 4000, // More tokens for comprehensive overview
-      response_format: { type: 'json_object' },
-    }, {
-      timeout: 60000, // 60 second timeout for longer responses
-    });
+        { status: errorStatus },
+      );
+    }
 
     let plan: StudyPlan | null = null;
 
@@ -532,36 +570,17 @@ Du antwortest ausschließlich mit gültigem JSON im Format {"title":"...","overv
     console.log('[generate-study-plan] Successfully generated plan:', { title: plan.title, stepsCount: plan.steps.length });
     return NextResponse.json({ plan });
   } catch (error) {
-    console.error('[generate-study-plan] Error:', error);
+    console.error('[generate-study-plan] Unexpected Error:', error);
     
-    // Provide more specific error messages
-    if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        return NextResponse.json(
-          { error: 'OpenAI API key is invalid or not configured. Please check your environment variables.' },
-          { status: 500 },
-        );
-      }
-      if (error.message.includes('rate limit') || error.message.includes('429')) {
-        return NextResponse.json(
-          { error: 'OpenAI API rate limit exceeded. Please try again in a moment.' },
-          { status: 429 },
-        );
-      }
-      if (error.message.includes('quota') || error.message.includes('insufficient')) {
-        return NextResponse.json(
-          { error: 'OpenAI API quota exceeded. Please check your OpenAI account billing.' },
-          { status: 402 },
-        );
-      }
-      return NextResponse.json(
-        { error: `Failed to generate study plan: ${error.message}` },
-        { status: 500 },
-      );
-    }
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const rawError = JSON.stringify({ message: errorMessage, type: 'unexpected' });
     
     return NextResponse.json(
-      { error: 'Could not generate study plan. Please ensure OpenAI API is properly configured and try again.' },
+      { 
+        ok: false,
+        status: 500,
+        raw: rawError,
+      },
       { status: 500 },
     );
   }

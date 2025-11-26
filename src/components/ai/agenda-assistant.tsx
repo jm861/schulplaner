@@ -19,6 +19,8 @@ export function AgendaAssistantCard() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleGenerate() {
+    if (loading) return; // Prevent multiple simultaneous requests
+    
     if (!text.trim()) {
       setError('Bitte gib eine Agenda oder einen Text ein.');
       return;
@@ -37,13 +39,34 @@ export function AgendaAssistantCard() {
         body: JSON.stringify({ text, tone }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Zusammenfassung konnte nicht erstellt werden.');
+      const data = await response.json();
+
+      if (!response.ok || (data as any).ok === false) {
+        const errorData = data as { ok?: boolean; status?: number; raw?: string };
+        const status = errorData.status || response.status;
+        const raw = errorData.raw || '';
+        
+        let errorMsg = 'Unbekannter Fehler';
+        if (status === 429) {
+          errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
+        } else if (status === 401) {
+          errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
+        } else if (status === 500) {
+          errorMsg = 'Interner Serverfehler beim Zusammenfassen.';
+        } else {
+          try {
+            const rawParsed = JSON.parse(raw);
+            errorMsg = `Fehler: ${rawParsed.message || raw}`;
+          } catch {
+            errorMsg = `Unbekannter Fehler: ${raw || status}`;
+          }
+        }
+        
+        setError(errorMsg);
+        return;
       }
 
-      const data = (await response.json()) as { summary?: string };
-      setSummary(data.summary ?? 'Keine Zusammenfassung verfügbar.');
+      setSummary((data as { summary?: string }).summary ?? 'Keine Zusammenfassung verfügbar.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler.');
     } finally {
