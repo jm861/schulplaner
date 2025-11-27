@@ -256,7 +256,7 @@ export default function CalendarPage() {
 
         {/* Responsive calendar grid: single column on mobile, 2 on tablet, 5 on desktop */}
         <div className="mt-2 overflow-x-auto pb-8 -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0">
-          <div className="grid gap-3 sm:gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 min-w-0 px-4 sm:px-6 md:px-8 lg:px-0">
+          <div className="grid gap-3 sm:gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-w-0 px-4 sm:px-6 md:px-8 lg:px-0">
             {displayDays.map((date) => {
               const dayData = getDayByDate(date) ?? ensureDayForDate(date);
               const dateStr = date.toISOString().split('T')[0];
