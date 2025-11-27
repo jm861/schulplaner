@@ -36,6 +36,8 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
   const [repeatWeeksCount, setRepeatWeeksCount] = useState(4);
   const [repeatStatus, setRepeatStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isRepeating, setIsRepeating] = useState(false);
+  const [repeatEntryWeekly, setRepeatEntryWeekly] = useState(false);
+  const [repeatEntryWeeksCount, setRepeatEntryWeeksCount] = useState(4);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,6 +63,14 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
       setEditingContext({ dayId: null, classId: null });
     } else {
       addClassToDay(targetDay.id, payload);
+      if (repeatEntryWeekly) {
+        const baseDate = new Date(formData.date);
+        for (let weekOffset = 1; weekOffset <= repeatEntryWeeksCount; weekOffset += 1) {
+          const futureDate = addDays(baseDate, weekOffset * 7);
+          const futureDay = ensureDayForDate(futureDate);
+          addClassToDay(futureDay.id, payload);
+        }
+      }
     }
 
     setFormData({
@@ -70,6 +80,7 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
       room: '',
       durationMinutes: 45,
     });
+    setRepeatEntryWeekly(false);
   }
 
   function startEdit(day: DayData, cls: ClassEntry) {
@@ -318,6 +329,39 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
             />
           </label>
         </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/40 space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={repeatEntryWeekly}
+              onChange={(e) => setRepeatEntryWeekly(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700"
+            />
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t('schedule.repeatEntryWeekly')}
+            </span>
+          </label>
+          {repeatEntryWeekly && (
+            <div className="ml-7 space-y-2">
+              <label className="flex flex-col gap-1 text-xs text-slate-600 dark:text-slate-300">
+                {t('schedule.repeatEntryWeeksCount')}
+                <select
+                  value={repeatEntryWeeksCount}
+                  onChange={(e) => setRepeatEntryWeeksCount(Number(e.target.value))}
+                  className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                >
+                  {[4, 8, 12, 16, 20, 40].map((weeks) => (
+                    <option key={weeks} value={weeks}>
+                      {weeks}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-2">
           <button type="submit" className={`${subtleButtonStyles} flex-1`}>
             {editingContext.classId ? t('schedule.update') : t('schedule.add')}

@@ -207,6 +207,8 @@ export const translations = {
     'schedule.repeatWeekNoClasses': 'No classes found in the selected week.',
     'schedule.repeatWeekNoNewEntries': 'All classes already existed in the selected future weeks.',
     'schedule.repeatWeekError': 'Could not repeat the timetable. Please try again.',
+    'schedule.repeatEntryWeekly': 'Repeat this class every week',
+    'schedule.repeatEntryWeeksCount': 'Repeat for how many weeks?',
     'schedule.noClasses': 'No classes scheduled. Click "Edit Schedule" to add classes.',
     'schedule.durationLabel': 'Duration (minutes)',
     
@@ -678,6 +680,8 @@ export const translations = {
     'schedule.repeatWeekNoClasses': 'In der ausgewählten Woche wurden keine Stunden gefunden.',
     'schedule.repeatWeekNoNewEntries': 'In den Zielwochen waren bereits alle Stunden vorhanden.',
     'schedule.repeatWeekError': 'Der Stundenplan konnte nicht wiederholt werden. Bitte versuche es erneut.',
+    'schedule.repeatEntryWeekly': 'Diese Stunde jede Woche wiederholen',
+    'schedule.repeatEntryWeeksCount': 'Für wie viele Wochen wiederholen?',
     'schedule.noClasses': 'Keine Klassen geplant. Klicke auf "Stundenplan bearbeiten" um Klassen hinzuzufügen.',
     'schedule.durationLabel': 'Dauer (Minuten)',
     
