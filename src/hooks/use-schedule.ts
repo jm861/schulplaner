@@ -1,33 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useAuth } from '@/contexts/auth-context';
 import { readJSON, writeJSON } from '@/lib/storage';
+import type { ClassEntry, DayData, TaskEntry } from '@/types/schedule';
 
-export interface ClassEntry {
-  id: string;
-  title: string;
-  time: string;
-  room: string;
-  subjectColor: string;
-  durationMinutes?: number;
-  participants?: string[];
-}
-
-export interface TaskEntry {
-  id: string;
-  title: string;
-  subject: string;
-  due: string;
-  subjectColor: string;
-}
-
-export interface DayData {
-  id: string;
-  date: string;
-  classes: ClassEntry[];
-  tasks: TaskEntry[];
-}
+export type { ClassEntry, TaskEntry, DayData } from '@/types/schedule';
 
 const SCHEDULE_STORAGE_KEY = 'schulplaner:schedule';
 
@@ -210,13 +189,82 @@ type ClassPayload = Omit<ClassEntry, 'id' | 'subjectColor'> &
   Partial<Pick<ClassEntry, 'id' | 'subjectColor'>>;
 
 export function useSchedule() {
+  const { user } = useAuth();
   const [days, setDays] = useState<DayData[]>(() =>
     normalizeDays(readJSON(SCHEDULE_STORAGE_KEY, createDefaultWeek()))
   );
+  const [isHydrated, setIsHydrated] = useState(!user?.id);
+  const initialSyncRef = useRef(false);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setIsHydrated(true);
+      return;
+    }
+
+    let cancelled = false;
+    const loadRemote = async () => {
+      try {
+        const response = await fetch(`/api/schedule?userId=${user.id}`, {
+          cache: 'no-store',
+        });
+        if (response.ok) {
+          const data = (await response.json()) as { days?: DayData[] | null };
+          if (Array.isArray(data.days)) {
+            setDays(normalizeDays(data.days));
+          }
+        }
+      } catch (error) {
+        console.error('[schedule] Failed to load remote schedule:', error);
+      } finally {
+        if (!cancelled) {
+          setIsHydrated(true);
+          initialSyncRef.current = true;
+        }
+      }
+    };
+
+    setIsHydrated(false);
+    initialSyncRef.current = false;
+    loadRemote();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     writeJSON(SCHEDULE_STORAGE_KEY, days);
   }, [days]);
+
+  useEffect(() => {
+    if (!user?.id || !isHydrated) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      const sync = async () => {
+        try {
+          await fetch('/api/schedule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id, days }),
+            signal: controller.signal,
+          });
+        } catch (error) {
+          if ((error as Error).name === 'AbortError') return;
+          console.error('[schedule] Failed to sync schedule:', error);
+        }
+      };
+      sync();
+    }, initialSyncRef.current ? 500 : 1000);
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [days, user?.id, isHydrated]);
 
   const getDayByDate = useCallback(
     (input: Date | string): DayData | null => {
