@@ -8,10 +8,19 @@ type ForgotPasswordPayload = {
   email?: string;
 };
 
-function getBaseUrl() {
+function getBaseUrl(req?: NextRequest) {
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL;
   }
+
+  if (req) {
+    const host = req.headers.get('host');
+    if (host) {
+      const protocol = host.includes('localhost') ? 'http' : 'https';
+      return `${protocol}://${host}`;
+    }
+  }
+
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
@@ -40,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { token, expiresAt } = await createPasswordResetToken(normalizedEmail);
-    const appUrl = getBaseUrl();
+    const appUrl = getBaseUrl(req);
     const resetUrl = `${appUrl}/reset-password?token=${token}`;
     
     console.log('[forgot-password] Generated reset URL:', {
