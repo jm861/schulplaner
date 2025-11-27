@@ -255,8 +255,8 @@ export default function CalendarPage() {
         </div>
 
         {/* Responsive calendar grid: single column on mobile, 2 on tablet, 5 on desktop */}
-        <div className="mt-2 overflow-x-auto pb-8 -mx-4 sm:-mx-6 md:-mx-8 lg:mx-0">
-          <div className="grid gap-3 sm:gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-w-0 px-4 sm:px-6 md:px-8 lg:px-0">
+        <div className="mt-2 pb-8">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 max-w-3xl mx-auto px-4 sm:px-6">
             {displayDays.map((date) => {
               const dayData = getDayByDate(date) ?? ensureDayForDate(date);
               const dateStr = date.toISOString().split('T')[0];
@@ -465,7 +465,7 @@ const MiniDayColumn = ({ date, dayData, t, onAddClass, onEditClass, onDeleteClas
   })();
 
   return (
-    <div className={`rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 min-h-[300px] sm:min-h-[400px] md:min-h-[500px] flex flex-col shadow-sm dark:border-gray-700 dark:bg-gray-800 min-w-[220px] ${isToday ? 'ring-2 ring-blue-500' : ''} ${isHoliday ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' : ''}`}>
+    <div className={`rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 min-h-[300px] sm:min-h-[400px] md:min-h-[500px] flex flex-col shadow-sm dark:border-gray-700 dark:bg-gray-800 ${isToday ? 'ring-2 ring-blue-500' : ''} ${isHoliday ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' : ''}`}>
       <div className="flex flex-col gap-2 text-xs sm:text-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">{formatDayLabel(date)}</p>
