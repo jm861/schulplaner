@@ -32,6 +32,10 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
     room: '',
     durationMinutes: 45,
   });
+  const [repeatWeekDate, setRepeatWeekDate] = useState(() => formatDateInput(getWeekStartForDate(new Date())));
+  const [repeatWeeksCount, setRepeatWeeksCount] = useState(4);
+  const [repeatStatus, setRepeatStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isRepeating, setIsRepeating] = useState(false);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,6 +94,71 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
     });
   }
 
+  function handleRepeatSchedule() {
+    setRepeatStatus(null);
+    setIsRepeating(true);
+    try {
+      const baseWeekStart = getWeekStartForDate(new Date(repeatWeekDate));
+      let classesFound = 0;
+      let added = 0;
+      let skipped = 0;
+
+      for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
+        const sourceDate = addDays(baseWeekStart, dayOffset);
+        const sourceDay = days.find((day) => day.date === formatDateInput(sourceDate));
+        if (!sourceDay || sourceDay.classes.length === 0) continue;
+
+        classesFound += sourceDay.classes.length;
+
+        for (let weekOffset = 1; weekOffset <= repeatWeeksCount; weekOffset += 1) {
+          const targetDate = addDays(sourceDate, weekOffset * 7);
+          const targetDay = ensureDayForDate(targetDate);
+
+          sourceDay.classes.forEach((cls) => {
+            const exists = targetDay.classes.some(
+              (existing) =>
+                existing.title === cls.title &&
+                existing.time === cls.time &&
+                existing.room === cls.room &&
+                (existing.durationMinutes ?? 45) === (cls.durationMinutes ?? 45)
+            );
+
+            if (exists) {
+              skipped += 1;
+              return;
+            }
+
+            addClassToDay(targetDay.id, {
+              title: cls.title,
+              time: cls.time,
+              room: cls.room,
+              subjectColor: cls.subjectColor,
+              durationMinutes: cls.durationMinutes ?? 45,
+              participants: cls.participants ?? [],
+            });
+            added += 1;
+          });
+        }
+      }
+
+      if (classesFound === 0) {
+        setRepeatStatus({ type: 'error', message: t('schedule.repeatWeekNoClasses') });
+      } else if (added === 0) {
+        setRepeatStatus({ type: 'error', message: t('schedule.repeatWeekNoNewEntries') });
+      } else {
+        setRepeatStatus({
+          type: 'success',
+          message: t('schedule.repeatWeekSuccess').replace('{count}', String(added)),
+        });
+      }
+    } catch (error) {
+      console.error('[schedule-editor] Repeat schedule error:', error);
+      setRepeatStatus({ type: 'error', message: t('schedule.repeatWeekError') });
+    } finally {
+      setIsRepeating(false);
+    }
+  }
+
   if (showPDFUploader) {
     return (
       <div className="space-y-6">
@@ -139,6 +208,61 @@ export function ScheduleEditor({ onClose }: ScheduleEditorProps) {
         >
           PDF hochladen
         </button>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+        <p className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
+          {t('schedule.repeatWeekTitle')}
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+          {t('schedule.repeatWeekDescription')}
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700 dark:text-slate-200">{t('schedule.repeatWeekSource')}</span>
+            <input
+              type="date"
+              value={repeatWeekDate}
+              onChange={(e) => setRepeatWeekDate(e.target.value)}
+              className={inputStyles}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-slate-700 dark:text-slate-200">{t('schedule.repeatWeekCount')}</span>
+            <select
+              value={repeatWeeksCount}
+              onChange={(e) => setRepeatWeeksCount(Number(e.target.value))}
+              className={inputStyles}
+            >
+              {[4, 8, 12, 16, 20, 40].map((weeks) => (
+                <option key={weeks} value={weeks}>
+                  {weeks}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="mt-3 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleRepeatSchedule}
+            disabled={isRepeating}
+            className={`${subtleButtonStyles} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            {isRepeating ? t('common.loading') : t('schedule.repeatWeekButton')}
+          </button>
+          {repeatStatus && (
+            <div
+              className={`rounded-2xl border px-3 py-2 text-xs ${
+                repeatStatus.type === 'success'
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-100'
+                  : 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700 dark:bg-rose-900/30 dark:text-rose-100'
+              }`}
+            >
+              {repeatStatus.message}
+            </div>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -278,5 +402,18 @@ function formatTimeRange(startTime: string, durationMinutes?: number) {
   return `${pad(startDate.getHours())}:${pad(startDate.getMinutes())} – ${pad(endDate.getHours())}:${pad(
     endDate.getMinutes()
   )}`;
+}
+
+function getWeekStartForDate(date: Date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(date.getDate() + days);
+  return next;
 }
 
