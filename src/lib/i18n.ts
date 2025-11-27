@@ -94,6 +94,7 @@ export const translations = {
     'exams.aiInsights': 'AI insight feed',
     'exams.generateSummary': 'Generate AI Summary',
     'exams.summaryPlaceholder': 'AI-generated exam summary will appear here...',
+    'exams.subjectSuggestionsHint': 'Suggestions from your classes and tasks',
     
     // Study Plan page
     'studyPlan.title': 'Intentional learning blocks',
@@ -560,6 +561,7 @@ export const translations = {
     'exams.aiInsights': 'KI-Insight-Feed',
     'exams.generateSummary': 'KI-Zusammenfassung generieren',
     'exams.summaryPlaceholder': 'KI-generierte Prüfungszusammenfassung erscheint hier...',
+    'exams.subjectSuggestionsHint': 'Vorschläge aus deinem Stundenplan und deinen Aufgaben',
     
     // Study Plan page
     'studyPlan.title': 'Bewusste Lernblöcke',

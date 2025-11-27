@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { SectionCard } from '@/components/ui/section-card';
 import { useLanguage } from '@/contexts/language-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useSchedule } from '@/hooks/use-schedule';
+import { useTasks } from '@/hooks/use-tasks';
 import { readJSON, writeJSON } from '@/lib/storage';
 import { inputStyles, textareaStyles, subtleButtonStyles } from '@/styles/theme';
 import { PlannerShell, PlannerNav } from '@/components/layout/planner-shell';
@@ -61,6 +63,8 @@ const EXAMS_STORAGE_KEY = 'schulplaner:exams';
 export default function ExamsPage() {
   const { t } = useLanguage();
   const { isAdmin, isOperator } = useAuth();
+  const { totalClasses } = useSchedule();
+  const { tasks } = useTasks();
   const [exams, setExams] = useState<Exam[]>(() => readJSON(EXAMS_STORAGE_KEY, initialExams));
   const [formData, setFormData] = useState({
     subject: '',
@@ -85,6 +89,30 @@ export default function ExamsPage() {
       return aTime - bTime;
     });
   }, [exams]);
+
+  const subjectSuggestions = useMemo(() => {
+    const map = new Map<string, string>();
+
+    const add = (value?: string) => {
+      if (!value) return;
+      const trimmed = value.trim();
+      if (!trimmed) return;
+      const key = trimmed.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, trimmed);
+      }
+    };
+
+    totalClasses.forEach((cls) => add(cls.title));
+    tasks.forEach((task) => add(task.subject));
+    exams.forEach((exam) => add(exam.subject));
+
+    return Array.from(map.values()).sort((a, b) =>
+      a.localeCompare(b, 'de', { sensitivity: 'base' })
+    );
+  }, [totalClasses, tasks, exams]);
+
+  const subjectDatalistId = 'exam-subject-options';
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -291,7 +319,20 @@ export default function ExamsPage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
                   className={inputStyles}
                   placeholder="e.g., Chemistry"
+                  list={subjectSuggestions.length > 0 ? subjectDatalistId : undefined}
                 />
+                {subjectSuggestions.length > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('exams.subjectSuggestionsHint')}
+                  </p>
+                )}
+                {subjectSuggestions.length > 0 && (
+                  <datalist id={subjectDatalistId}>
+                    {subjectSuggestions.map((subject) => (
+                      <option key={subject} value={subject} />
+                    ))}
+                  </datalist>
+                )}
               </label>
 
               <label className="flex flex-col gap-1">
