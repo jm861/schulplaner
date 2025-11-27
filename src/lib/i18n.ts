@@ -94,6 +94,7 @@ export const translations = {
     'exams.aiInsights': 'AI insight feed',
     'exams.generateSummary': 'Generate AI Summary',
     'exams.summaryPlaceholder': 'AI-generated exam summary will appear here...',
+    'exams.aiSummary': 'AI Summary',
     'exams.subjectSuggestionsHint': 'Suggestions from your classes and tasks',
     
     // Study Plan page
@@ -288,6 +289,8 @@ export const translations = {
     'common.english': 'English',
     'common.german': 'Deutsch',
     'common.cancel': 'Cancel',
+    'common.show': 'Show',
+    'common.hide': 'Hide',
     'common.save': 'Save',
     'common.add': 'Add',
     'common.edit': 'Edit',
@@ -561,6 +564,7 @@ export const translations = {
     'exams.aiInsights': 'KI-Insight-Feed',
     'exams.generateSummary': 'KI-Zusammenfassung generieren',
     'exams.summaryPlaceholder': 'KI-generierte Prüfungszusammenfassung erscheint hier...',
+    'exams.aiSummary': 'KI-Zusammenfassung',
     'exams.subjectSuggestionsHint': 'Vorschläge aus deinem Stundenplan und deinen Aufgaben',
     
     // Study Plan page
@@ -762,6 +766,8 @@ export const translations = {
     'common.english': 'Englisch',
     'common.german': 'Deutsch',
     'common.cancel': 'Abbrechen',
+    'common.show': 'Anzeigen',
+    'common.hide': 'Ausblenden',
     'common.save': 'Speichern',
     'common.add': 'Hinzufügen',
     'common.edit': 'Bearbeiten',

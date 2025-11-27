@@ -19,6 +19,7 @@ type Exam = {
   topics: string;
   notes: string;
   studyDays?: number; // Number of days to study before the exam
+  summary?: string; // AI-generated summary
 };
 
 const initialExams: Exam[] = [
@@ -77,6 +78,7 @@ export default function ExamsPage() {
   const [summary, setSummary] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     writeJSON(EXAMS_STORAGE_KEY, exams);
@@ -130,6 +132,7 @@ export default function ExamsPage() {
                 topics: formData.topics,
                 notes: formData.notes,
                 studyDays: formData.studyDays ? parseInt(formData.studyDays, 10) : undefined,
+                summary: summary || exam.summary, // Keep existing summary if no new one generated
               }
             : exam
         )
@@ -145,6 +148,7 @@ export default function ExamsPage() {
           topics: formData.topics,
           notes: formData.notes,
           studyDays: formData.studyDays ? parseInt(formData.studyDays, 10) : undefined,
+          summary: summary || undefined,
         },
         ...prev,
       ]);
@@ -170,7 +174,7 @@ export default function ExamsPage() {
       notes: exam.notes,
       studyDays: exam.studyDays?.toString() || '',
     });
-    setSummary(null);
+    setSummary(exam.summary || null); // Restore saved summary if available
     setErrorMessage(null);
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -224,7 +228,7 @@ export default function ExamsPage() {
         }),
       });
 
-      const data = await response.json();
+        const data = await response.json();
 
       if (!response.ok || (data as any).ok === false) {
         const errorData = data as { ok?: boolean; status?: number; raw?: string };
@@ -401,10 +405,10 @@ export default function ExamsPage() {
             </form>
             <div className="mt-6 flex flex-col gap-4 text-sm">
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleGenerateSummary}
-                  disabled={isGenerating || !formData.subject}
+              <button
+                type="button"
+                onClick={handleGenerateSummary}
+                disabled={isGenerating || !formData.subject}
                   className={`flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition-all hover:bg-blue-100 hover:shadow-sm active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50`}
                 >
                   {isGenerating ? (
@@ -434,7 +438,7 @@ export default function ExamsPage() {
                     className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
                     Schließen
-                  </button>
+              </button>
                 )}
               </div>
               {errorMessage ? (
@@ -458,8 +462,8 @@ export default function ExamsPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">
-                      KI-Zusammenfassung
-                    </p>
+                    KI-Zusammenfassung
+                  </p>
                   </div>
                   <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
                     <p className="whitespace-pre-line text-sm leading-relaxed">{summary}</p>
@@ -513,6 +517,38 @@ export default function ExamsPage() {
                       <p className="text-sm">{exam.topics || t('exams.addTopics')}</p>
                       <p className="font-medium text-gray-900 dark:text-white">{t('exams.notes')}</p>
                       <p className="text-sm">{exam.notes || t('exams.noNotes')}</p>
+                      {exam.summary && (
+                        <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400">
+                              {t('exams.aiSummary')}
+                            </p>
+                            <button
+                              onClick={() => {
+                                setExpandedSummaries((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(exam.id)) {
+                                    next.delete(exam.id);
+                                  } else {
+                                    next.add(exam.id);
+                                  }
+                                  return next;
+                                });
+                              }}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              {expandedSummaries.has(exam.id) ? t('common.hide') : t('common.show')}
+                            </button>
+                          </div>
+                          {expandedSummaries.has(exam.id) && (
+                            <div className="prose prose-sm max-w-none">
+                              <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                                {exam.summary}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </li>
                 ))}
