@@ -24,7 +24,7 @@ type PlannerShellProps = {
 export function PlannerShell({
   sidebar,
   children,
-  backgroundClassName = 'bg-gray-50 dark:bg-black',
+  backgroundClassName = 'bg-gray-50 dark:bg-gray-950',
   mainClassName = 'rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 md:p-8 lg:p-10 dark:border-gray-800 dark:bg-gray-900',
   sidebarClassName = 'w-full max-w-sm rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 dark:border-gray-800 dark:bg-gray-900',
 }: PlannerShellProps) {
