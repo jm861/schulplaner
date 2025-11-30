@@ -180,8 +180,8 @@ export default function SettingsPage() {
         </>
       }
     >
-      <div className="space-y-6">
-        <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
+      <div className="space-y-6 w-full">
+        <div className="grid gap-6 sm:gap-8 lg:grid-cols-2 w-full">
         <SectionCard title={t('settings.profile')}>
           <form className="space-y-4 text-sm">
             <label className="flex flex-col gap-1.5 sm:gap-2">

@@ -60,71 +60,122 @@ export async function POST(req: NextRequest) {
     const validFrom = `${currentYear}-01-01`;
     const validTo = `${currentYear}-12-31`;
 
-    // OpenHolidays API aufrufen
-    const apiUrl = `https://openholidaysapi.org/SchoolHolidays?countryIsoCode=DE&subdivisionCode=${subdivisionCode}&validFrom=${validFrom}&validTo=${validTo}`;
+    // Versuche zuerst die einfachere ferien-api.maxleistner.de API
+    const ferienApiUrl = `https://www.ferien-api.de/api/v1/${currentYear}/${state}`;
+    
+    console.log('[fetch-holidays] Trying ferien-api.de:', ferienApiUrl);
 
-    console.log('[fetch-holidays] Fetching from:', apiUrl);
+    let holidays: Array<{ name: string; startDate: string; endDate: string; state: string }> = [];
 
-    const response = await fetch(apiUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Schulplaner/1.0',
-      },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(10000), // 10 seconds timeout
-    });
-
-    if (!response.ok) {
-      console.error('[fetch-holidays] API error:', response.status, response.statusText);
-      return NextResponse.json(
-        { 
-          error: `API-Fehler: ${response.status} ${response.statusText}`,
-          details: 'Die Ferien-API konnte nicht erreicht werden.'
+    try {
+      const ferienResponse = await fetch(ferienApiUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Schulplaner/1.0',
         },
-        { status: response.status }
-      );
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (ferienResponse.ok) {
+        const ferienData = await ferienResponse.json();
+        console.log('[fetch-holidays] ferien-api.de returned:', JSON.stringify(ferienData).substring(0, 500));
+
+        // ferien-api.de Format kann unterschiedlich sein
+        let rawHolidays: any[] = [];
+        
+        if (Array.isArray(ferienData)) {
+          rawHolidays = ferienData;
+        } else if (ferienData.holidays && Array.isArray(ferienData.holidays)) {
+          rawHolidays = ferienData.holidays;
+        } else if (ferienData.data && Array.isArray(ferienData.data)) {
+          rawHolidays = ferienData.data;
+        }
+
+        holidays = rawHolidays
+          .map((item: any) => {
+            // Verschiedene mögliche Feldnamen
+            const name = item.name || item.title || item.label || 'Ferien';
+            const startDate = item.start || item.startDate || item.from || item.begin || '';
+            const endDate = item.end || item.endDate || item.to || item.until || '';
+            
+            return { name, startDate, endDate, state };
+          })
+          .filter((h: any) => h.startDate && h.endDate && h.startDate.length >= 10 && h.endDate.length >= 10);
+
+        console.log('[fetch-holidays] Parsed', holidays.length, 'holidays from ferien-api.de');
+      } else {
+        console.log('[fetch-holidays] ferien-api.de returned status', ferienResponse.status);
+      }
+    } catch (ferienError) {
+      console.log('[fetch-holidays] ferien-api.de failed:', ferienError instanceof Error ? ferienError.message : String(ferienError));
     }
 
-    const data: OpenHolidaysHoliday[] = await response.json();
+    // Fallback zu OpenHolidays API wenn ferien-api.de keine Daten liefert
+    if (holidays.length === 0) {
+      const openHolidaysUrl = `https://openholidaysapi.org/SchoolHolidays?countryIsoCode=DE&subdivisionCode=${subdivisionCode}&validFrom=${validFrom}&validTo=${validTo}`;
+      
+      console.log('[fetch-holidays] Trying OpenHolidays API:', openHolidaysUrl);
 
-    console.log('[fetch-holidays] API returned', data.length, 'holidays');
+      const response = await fetch(openHolidaysUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Schulplaner/1.0',
+        },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10000),
+      });
 
-    // Daten in unser Format konvertieren
-    const holidays = data
-      .filter((holiday) => {
-        // Nur Schulferien - die API verwendet verschiedene type-Werte
-        // Prüfe auf school_holiday oder public_holiday
-        const isSchoolHoliday = holiday.type === 'school_holiday' || 
-                                holiday.type === 'public_holiday' ||
-                                holiday.type?.toLowerCase().includes('holiday') ||
-                                holiday.type?.toLowerCase().includes('vacation');
-        
-        // Prüfe, ob es für unser Bundesland gilt
-        const appliesToState = holiday.nationwide || 
-                              holiday.subdivisions?.some((sub) => sub.code === subdivisionCode) ||
-                              !holiday.subdivisions || // Wenn keine subdivisions angegeben, gilt es für alle
-                              holiday.subdivisions.length === 0;
+      if (!response.ok) {
+        console.error('[fetch-holidays] OpenHolidays API error:', response.status, response.statusText);
+        return NextResponse.json(
+          { 
+            error: `API-Fehler: ${response.status} ${response.statusText}`,
+            details: 'Die Ferien-API konnte nicht erreicht werden.'
+          },
+          { status: response.status }
+        );
+      }
 
-        return isSchoolHoliday && appliesToState;
-      })
-      .map((holiday) => {
-        // Deutschen Namen finden
-        const germanName = holiday.name.find((n) => n.language === 'DE')?.text || 
-                          holiday.name.find((n) => n.language === 'de')?.text ||
-                          holiday.name.find((n) => n.language === 'DEU')?.text ||
-                          holiday.name[0]?.text || 
-                          'Ferien';
+      const data: OpenHolidaysHoliday[] = await response.json();
+      console.log('[fetch-holidays] OpenHolidays API returned', data.length, 'holidays');
 
-        return {
-          name: germanName,
-          startDate: holiday.startDate,
-          endDate: holiday.endDate,
-          state: state,
-        };
-      })
-      .sort((a, b) => a.startDate.localeCompare(b.startDate));
+      // Daten in unser Format konvertieren
+      holidays = data
+        .filter((holiday) => {
+          // Nur Schulferien - die API verwendet verschiedene type-Werte
+          const isSchoolHoliday = holiday.type === 'school_holiday' || 
+                                  holiday.type === 'public_holiday' ||
+                                  holiday.type?.toLowerCase().includes('holiday') ||
+                                  holiday.type?.toLowerCase().includes('vacation');
+          
+          // Prüfe, ob es für unser Bundesland gilt
+          const appliesToState = holiday.nationwide || 
+                                holiday.subdivisions?.some((sub) => sub.code === subdivisionCode) ||
+                                !holiday.subdivisions ||
+                                holiday.subdivisions.length === 0;
 
-    console.log('[fetch-holidays] Filtered to', holidays.length, 'school holidays');
+          return isSchoolHoliday && appliesToState;
+        })
+        .map((holiday) => {
+          // Deutschen Namen finden
+          const germanName = holiday.name.find((n) => n.language === 'DE')?.text || 
+                            holiday.name.find((n) => n.language === 'de')?.text ||
+                            holiday.name.find((n) => n.language === 'DEU')?.text ||
+                            holiday.name[0]?.text || 
+                            'Ferien';
+
+          return {
+            name: germanName,
+            startDate: holiday.startDate,
+            endDate: holiday.endDate,
+            state: state,
+          };
+        })
+        .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+      console.log('[fetch-holidays] Filtered to', holidays.length, 'school holidays from OpenHolidays');
+    }
 
     return NextResponse.json({ holidays });
   } catch (error) {
