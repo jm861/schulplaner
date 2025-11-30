@@ -87,21 +87,31 @@ export async function POST(req: NextRequest) {
 
     const data: OpenHolidaysHoliday[] = await response.json();
 
+    console.log('[fetch-holidays] API returned', data.length, 'holidays');
+
     // Daten in unser Format konvertieren
     const holidays = data
       .filter((holiday) => {
-        // Nur Schulferien (type === "public_holiday" oder "school_holiday")
-        // und nur die, die für unser Bundesland gelten
-        return (
-          (holiday.type === 'public_holiday' || holiday.type === 'school_holiday') &&
-          (holiday.nationwide || 
-           holiday.subdivisions?.some((sub) => sub.code === subdivisionCode))
-        );
+        // Nur Schulferien - die API verwendet verschiedene type-Werte
+        // Prüfe auf school_holiday oder public_holiday
+        const isSchoolHoliday = holiday.type === 'school_holiday' || 
+                                holiday.type === 'public_holiday' ||
+                                holiday.type?.toLowerCase().includes('holiday') ||
+                                holiday.type?.toLowerCase().includes('vacation');
+        
+        // Prüfe, ob es für unser Bundesland gilt
+        const appliesToState = holiday.nationwide || 
+                              holiday.subdivisions?.some((sub) => sub.code === subdivisionCode) ||
+                              !holiday.subdivisions || // Wenn keine subdivisions angegeben, gilt es für alle
+                              holiday.subdivisions.length === 0;
+
+        return isSchoolHoliday && appliesToState;
       })
       .map((holiday) => {
         // Deutschen Namen finden
         const germanName = holiday.name.find((n) => n.language === 'DE')?.text || 
                           holiday.name.find((n) => n.language === 'de')?.text ||
+                          holiday.name.find((n) => n.language === 'DEU')?.text ||
                           holiday.name[0]?.text || 
                           'Ferien';
 
@@ -113,6 +123,8 @@ export async function POST(req: NextRequest) {
         };
       })
       .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+    console.log('[fetch-holidays] Filtered to', holidays.length, 'school holidays');
 
     return NextResponse.json({ holidays });
   } catch (error) {

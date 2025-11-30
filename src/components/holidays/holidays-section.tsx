@@ -99,8 +99,21 @@ export function HolidaysSection() {
       const data = await response.json();
       
       if (data.holidays && Array.isArray(data.holidays)) {
+        // Prüfe, ob überhaupt Ferien zurückgegeben wurden
+        if (data.holidays.length === 0) {
+          setFetchState((prev) => ({
+            ...prev,
+            isFetching: false,
+            error: 'Keine Ferien für dieses Bundesland und Jahr gefunden.',
+            success: false,
+          }));
+          return;
+        }
+
         // Füge alle Ferien hinzu (Duplikate werden durch den Hook verhindert, falls nötig)
         let addedCount = 0;
+        let skippedCount = 0;
+        
         for (const holiday of data.holidays) {
           // Prüfe, ob diese Ferien bereits existieren (gleicher Name, Start- und Enddatum)
           const exists = holidays.some(
@@ -114,20 +127,39 @@ export function HolidaysSection() {
           if (!exists) {
             addHoliday(holiday.name, holiday.startDate, holiday.endDate, holiday.state);
             addedCount++;
+          } else {
+            skippedCount++;
           }
         }
 
-        setFetchState((prev) => ({
-          ...prev,
-          isFetching: false,
-          success: true,
-          error: addedCount === 0 ? 'Alle Ferien sind bereits vorhanden' : null,
-        }));
-
-        // Erfolgsmeldung nach 3 Sekunden ausblenden
-        setTimeout(() => {
-          setFetchState((prev) => ({ ...prev, success: false }));
-        }, 3000);
+        // Zeige entsprechende Meldung
+        if (addedCount === 0 && skippedCount > 0) {
+          setFetchState((prev) => ({
+            ...prev,
+            isFetching: false,
+            error: `Alle ${skippedCount} Ferien sind bereits vorhanden.`,
+            success: false,
+          }));
+        } else if (addedCount > 0) {
+          setFetchState((prev) => ({
+            ...prev,
+            isFetching: false,
+            success: true,
+            error: null,
+          }));
+          
+          // Erfolgsmeldung nach 3 Sekunden ausblenden
+          setTimeout(() => {
+            setFetchState((prev) => ({ ...prev, success: false }));
+          }, 3000);
+        } else {
+          setFetchState((prev) => ({
+            ...prev,
+            isFetching: false,
+            error: 'Keine Ferien konnten hinzugefügt werden.',
+            success: false,
+          }));
+        }
       } else {
         throw new Error('Ungültiges Datenformat erhalten');
       }
