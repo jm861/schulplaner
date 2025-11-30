@@ -18,6 +18,13 @@ export function HolidaysSection() {
     state: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fetchState, setFetchState] = useState({
+    selectedState: '',
+    selectedYear: new Date().getFullYear(),
+    isFetching: false,
+    error: null as string | null,
+    success: false,
+  });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,10 +71,166 @@ export function HolidaysSection() {
     });
   }
 
+  async function handleFetchHolidays() {
+    if (!fetchState.selectedState) {
+      setFetchState((prev) => ({ ...prev, error: 'Bitte wähle ein Bundesland aus' }));
+      return;
+    }
+
+    setFetchState((prev) => ({ ...prev, isFetching: true, error: null, success: false }));
+
+    try {
+      const response = await fetch('/api/fetch-holidays', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          state: fetchState.selectedState,
+          year: fetchState.selectedYear,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || data.details || 'Fehler beim Abrufen der Ferien');
+      }
+
+      const data = await response.json();
+      
+      if (data.holidays && Array.isArray(data.holidays)) {
+        // Füge alle Ferien hinzu (Duplikate werden durch den Hook verhindert, falls nötig)
+        let addedCount = 0;
+        for (const holiday of data.holidays) {
+          // Prüfe, ob diese Ferien bereits existieren (gleicher Name, Start- und Enddatum)
+          const exists = holidays.some(
+            (h) =>
+              h.name === holiday.name &&
+              h.startDate === holiday.startDate &&
+              h.endDate === holiday.endDate &&
+              h.state === holiday.state
+          );
+          
+          if (!exists) {
+            addHoliday(holiday.name, holiday.startDate, holiday.endDate, holiday.state);
+            addedCount++;
+          }
+        }
+
+        setFetchState((prev) => ({
+          ...prev,
+          isFetching: false,
+          success: true,
+          error: addedCount === 0 ? 'Alle Ferien sind bereits vorhanden' : null,
+        }));
+
+        // Erfolgsmeldung nach 3 Sekunden ausblenden
+        setTimeout(() => {
+          setFetchState((prev) => ({ ...prev, success: false }));
+        }, 3000);
+      } else {
+        throw new Error('Ungültiges Datenformat erhalten');
+      }
+    } catch (error) {
+      console.error('Error fetching holidays:', error);
+      setFetchState((prev) => ({
+        ...prev,
+        isFetching: false,
+        error: error instanceof Error ? error.message : 'Unbekannter Fehler',
+      }));
+    }
+  }
+
   return (
     <SectionCard title={t('settings.holidays')}>
       <div className="space-y-4 text-sm">
         <p className="text-xs text-gray-500 dark:text-gray-400">{t('settings.holidaysDescription')}</p>
+
+        {/* Automatisches Laden der Ferien */}
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+          <h4 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+            {t('settings.fetchHolidays')}
+          </h4>
+          <div className="space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label className="flex flex-1 flex-col gap-1.5">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                  {t('settings.holidayState')}
+                </span>
+                <select
+                  value={fetchState.selectedState}
+                  onChange={(e) =>
+                    setFetchState((prev) => ({ ...prev, selectedState: e.target.value, error: null }))
+                  }
+                  className={selectStyles}
+                >
+                  <option value="">{t('settings.selectState')}</option>
+                  {states.map((state) => (
+                    <option key={state.code} value={state.code}>
+                      {state.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-1 flex-col gap-1.5">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                  {t('settings.holidayYear')}
+                </span>
+                <select
+                  value={fetchState.selectedYear}
+                  onChange={(e) =>
+                    setFetchState((prev) => ({
+                      ...prev,
+                      selectedYear: parseInt(e.target.value, 10),
+                      error: null,
+                    }))
+                  }
+                  className={selectStyles}
+                >
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const year = new Date().getFullYear() - 1 + i;
+                    return (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+            </div>
+            <button
+              onClick={handleFetchHolidays}
+              disabled={fetchState.isFetching || !fetchState.selectedState}
+              className={`${primaryButtonStyles} w-full disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              {fetchState.isFetching ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  {t('settings.fetchingHolidays')}
+                </span>
+              ) : (
+                t('settings.fetchHolidaysButton')
+              )}
+            </button>
+            {fetchState.error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+                {fetchState.error}
+              </div>
+            )}
+            {fetchState.success && !fetchState.error && (
+              <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-xs text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300">
+                {t('settings.holidaysFetchedSuccess')}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Formular zum Hinzufügen/Bearbeiten */}
         <form onSubmit={handleSubmit} className="space-y-4">
