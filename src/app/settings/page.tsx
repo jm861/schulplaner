@@ -13,11 +13,10 @@ import { inputStyles, selectStyles, textareaStyles, subtleButtonStyles } from '@
 import { PlannerShell, PlannerNav } from '@/components/layout/planner-shell';
 import { buildPlannerNavItems } from '@/lib/planner-nav';
 import { useTeachers } from '@/hooks/use-teachers';
-import { useHolidays } from '@/hooks/use-holidays';
 import { useCourses } from '@/hooks/use-courses';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { Teacher } from '@/types/teachers';
-import { Holiday } from '@/types/holidays';
+import { HolidaysSection } from '@/components/holidays/holidays-section';
 
 type NotificationSetting = {
   label: string;
@@ -63,15 +62,12 @@ export default function SettingsPage() {
   const { hasDemoData, removeDemoData } = useWeeklyPlan();
   const { theme, setTheme } = useTheme();
   const { teachers, addTeacher, updateTeacher, updateTeacherCourses, deleteTeacher } = useTeachers();
-  const { holidays, addHoliday, updateHoliday, deleteHoliday, states } = useHolidays();
   const { courses, getCoursesByIds } = useCourses();
   const { isSupported, permission, subscribe, unsubscribe, subscription, sendLocalNotification } = usePushNotifications();
   
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
-  const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
   const [assigningCourses, setAssigningCourses] = useState<Teacher | null>(null);
   const [teacherForm, setTeacherForm] = useState({ name: '', email: '' });
-  const [holidayForm, setHolidayForm] = useState({ name: '', startDate: '', endDate: '', state: '' });
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [settings, setSettings] = useState<SettingsState>(() => {
     try {
@@ -619,186 +615,7 @@ export default function SettingsPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title={t('settings.holidays')}>
-          <div className="space-y-4 text-sm">
-            <p className="text-xs text-slate-500 dark:text-slate-400">{t('settings.holidaysDescription')}</p>
-            
-            {editingHoliday ? (
-              <div className="space-y-3 rounded-2xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
-                <h4 className="font-semibold text-slate-900 dark:text-white">{t('settings.editHoliday')}</h4>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={holidayForm.name}
-                    onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
-                    placeholder={t('settings.holidayName')}
-                    className={`${inputStyles} w-full`}
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="date"
-                      value={holidayForm.startDate}
-                      onChange={(e) => setHolidayForm({ ...holidayForm, startDate: e.target.value })}
-                      className={`${inputStyles} w-full`}
-                    />
-                    <input
-                      type="date"
-                      value={holidayForm.endDate}
-                      onChange={(e) => setHolidayForm({ ...holidayForm, endDate: e.target.value })}
-                      className={`${inputStyles} w-full`}
-                    />
-                  </div>
-                  <select
-                    value={holidayForm.state}
-                    onChange={(e) => setHolidayForm({ ...holidayForm, state: e.target.value })}
-                    className={`${selectStyles} w-full`}
-                  >
-                    <option value="">{t('settings.selectState')}</option>
-                    {states.map((state) => (
-                      <option key={state.code} value={state.code}>
-                        {state.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (holidayForm.name && holidayForm.startDate && holidayForm.endDate && holidayForm.state) {
-                        updateHoliday(
-                          editingHoliday.id,
-                          holidayForm.name,
-                          holidayForm.startDate,
-                          holidayForm.endDate,
-                          holidayForm.state
-                        );
-                        setEditingHoliday(null);
-                        setHolidayForm({ name: '', startDate: '', endDate: '', state: '' });
-                      }
-                    }}
-                    className={`${subtleButtonStyles} flex-1`}
-                  >
-                    {t('common.save')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingHoliday(null);
-                      setHolidayForm({ name: '', startDate: '', endDate: '', state: '' });
-                    }}
-                    className={`${subtleButtonStyles} flex-1 border-slate-300 dark:border-slate-600`}
-                  >
-                    {t('common.cancel')}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
-                <h4 className="font-semibold text-slate-900 dark:text-white">{t('settings.addHoliday')}</h4>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={holidayForm.name}
-                    onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
-                    placeholder={t('settings.holidayName')}
-                    className={`${inputStyles} w-full`}
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="date"
-                      value={holidayForm.startDate}
-                      onChange={(e) => setHolidayForm({ ...holidayForm, startDate: e.target.value })}
-                      className={`${inputStyles} w-full`}
-                    />
-                    <input
-                      type="date"
-                      value={holidayForm.endDate}
-                      onChange={(e) => setHolidayForm({ ...holidayForm, endDate: e.target.value })}
-                      className={`${inputStyles} w-full`}
-                    />
-                  </div>
-                  <select
-                    value={holidayForm.state}
-                    onChange={(e) => setHolidayForm({ ...holidayForm, state: e.target.value })}
-                    className={`${selectStyles} w-full`}
-                  >
-                    <option value="">{t('settings.selectState')}</option>
-                    {states.map((state) => (
-                      <option key={state.code} value={state.code}>
-                        {state.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={() => {
-                    if (holidayForm.name && holidayForm.startDate && holidayForm.endDate && holidayForm.state) {
-                      addHoliday(
-                        holidayForm.name,
-                        holidayForm.startDate,
-                        holidayForm.endDate,
-                        holidayForm.state
-                      );
-                      setHolidayForm({ name: '', startDate: '', endDate: '', state: '' });
-                    }
-                  }}
-                  className={`${subtleButtonStyles} w-full`}
-                >
-                  {t('common.add')}
-                </button>
-              </div>
-            )}
-
-            {holidays.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-slate-400">{t('settings.noHolidays')}</p>
-            ) : (
-              <ul className="space-y-2">
-                {holidays.map((holiday) => {
-                  const stateName = states.find((s) => s.code === holiday.state)?.name || holiday.state;
-                  return (
-                    <li
-                      key={holiday.id}
-                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900/40"
-                    >
-                      <div className="flex-1">
-                        <p className="font-semibold text-slate-900 dark:text-white">{holiday.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {new Date(holiday.startDate).toLocaleDateString('de-DE')} –{' '}
-                          {new Date(holiday.endDate).toLocaleDateString('de-DE')} • {stateName}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingHoliday(holiday);
-                            setHolidayForm({
-                              name: holiday.name,
-                              startDate: holiday.startDate,
-                              endDate: holiday.endDate,
-                              state: holiday.state,
-                            });
-                          }}
-                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50"
-                        >
-                          {t('common.edit')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`Möchtest du ${holiday.name} wirklich löschen?`)) {
-                              deleteHoliday(holiday.id);
-                            }
-                          }}
-                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/50"
-                        >
-                          {t('common.delete')}
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </SectionCard>
+        <HolidaysSection />
         </div>
       </div>
     </PlannerShell>
