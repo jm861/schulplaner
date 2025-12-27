@@ -1,237 +1,401 @@
+/**
+ * Tasks Page - Apple-like Design
+ * Manage tasks with deep links and context badges
+ */
+
 'use client';
 
-import { useState, FormEvent } from 'react';
-
-import { SectionCard } from '@/components/ui/section-card';
-import { useLanguage } from '@/contexts/language-context';
-import { useAuth } from '@/contexts/auth-context';
-import { useTasks } from '@/hooks/use-tasks';
-import { inputStyles, selectStyles } from '@/styles/theme';
-import { PlannerShell, PlannerNav } from '@/components/layout/planner-shell';
-import { buildPlannerNavItems } from '@/lib/planner-nav';
+import { useState, useMemo } from 'react';
+import { useAppStore } from '@/store/app-store';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ListRow } from '@/components/ui/list-row';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { ContextBadge } from '@/components/ui/smart-link';
+import { useToastActions } from '@/components/ui/toast';
+import { CheckSquare, Plus, Search, Calendar } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { generateDeepLink } from '@/types/entities';
 
 export default function TasksPage() {
-  const { t } = useLanguage();
-  const { isAdmin, isOperator } = useAuth();
-  const { sortedTasks, addTask, deleteTask, toggleTask } = useTasks();
-  
-  const quickActions = [
-    t('tasks.captureHomework'),
-    t('tasks.aiSummarize'),
-    t('tasks.blockTime'),
-  ];
+  const router = useRouter();
+  const { tasks, subjects, addTask, updateTask, deleteTask, toggleTaskStatus } = useAppStore();
+  const toast = useToastActions();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'todo' | 'in-progress' | 'done'>('all');
+  const [search, setSearch] = useState('');
+
   const [formData, setFormData] = useState({
     title: '',
-    subject: '',
+    description: '',
+    subjectId: '',
     dueDate: '',
-    priority: 'Medium',
+    priority: 'medium' as 'low' | 'medium' | 'high',
   });
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!formData.title.trim()) return;
+  const filteredTasks = useMemo(() => {
+    let filtered = tasks;
+
+    // Filter by status
+    if (filter !== 'all') {
+      filtered = filtered.filter((t) => t.status === filter);
+    }
+
+    // Filter by search
+    if (search.trim()) {
+      const query = search.toLowerCase();
+      filtered = filtered.filter(
+        (t) =>
+          t.title.toLowerCase().includes(query) ||
+          t.description?.toLowerCase().includes(query) ||
+          t.subjectName?.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort: by due date (earliest first), then by priority
+    return filtered.sort((a, b) => {
+      if (a.dueDate && b.dueDate) {
+        return a.dueDate.localeCompare(b.dueDate);
+      }
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    });
+  }, [tasks, filter, search]);
+
+  const stats = useMemo(() => {
+    return {
+      total: tasks.length,
+      todo: tasks.filter((t) => t.status === 'todo').length,
+      inProgress: tasks.filter((t) => t.status === 'in-progress').length,
+      done: tasks.filter((t) => t.status === 'done').length,
+    };
+  }, [tasks]);
+
+  const handleSubmit = () => {
+    if (!formData.title.trim()) {
+      toast.error('Titel erforderlich', 'Bitte gib einen Titel für die Aufgabe ein.');
+      return;
+    }
+
+    const selectedSubject = subjects.find((s) => s.id === formData.subjectId);
 
     addTask({
       title: formData.title,
-      subject: formData.subject,
-      dueDate: formData.dueDate,
-      priority: formData.priority as 'Low' | 'Medium' | 'High',
+      description: formData.description || undefined,
+      subjectId: formData.subjectId || undefined,
+      subjectName: selectedSubject?.name,
+      dueDate: formData.dueDate || undefined,
+      priority: formData.priority,
+      status: 'todo',
     });
 
+    toast.success('Aufgabe hinzugefügt', formData.title);
     setFormData({
       title: '',
-      subject: '',
+      description: '',
+      subjectId: '',
       dueDate: '',
-      priority: 'Medium',
+      priority: 'medium',
     });
-  }
-
-  const tasksSorted = sortedTasks;
-
-  const formatDueDate = (value: string) => {
-    if (!value) return t('tasks.noDueDate');
-    return new Intl.DateTimeFormat('de-DE', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(value));
+    setIsAddOpen(false);
   };
 
-  const openTasks = tasksSorted.filter((task) => !task.done).length;
-  const completedTasks = tasksSorted.length - openTasks;
-  const navItems = buildPlannerNavItems(t, { isAdmin, isOperator });
-  const quickStatsText = t('tasks.quickStats').replace('{count}', String(tasksSorted.length));
+  const handleDelete = (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (task && confirm(`Möchtest du "${task.title}" wirklich löschen?`)) {
+      deleteTask(taskId);
+      toast.success('Aufgabe gelöscht', task.title);
+    }
+  };
 
   return (
-    <PlannerShell
-      sidebar={
-        <>
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Q1 1. Term</p>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{t('tasks.title')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{t('tasks.description')}</p>
-          </div>
-          <PlannerNav items={navItems} label={t('planner.navigation')} />
-          <div className="mt-8 space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Open</p>
-                <p className="text-3xl font-semibold text-gray-900 dark:text-white">{openTasks}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Done</p>
-                <p className="text-3xl font-semibold text-gray-900 dark:text-white">{completedTasks}</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">{quickStatsText}</p>
-          </div>
-        </>
-      }
-    >
-      <div className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SectionCard title={t('tasks.createTask')}>
-            <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
-              <label className="flex flex-col gap-1">
-                <span className="font-medium text-gray-700 dark:text-gray-200">{t('tasks.taskTitle')}</span>
-                <input
-                  value={formData.title}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                  className={inputStyles}
-                  placeholder="e.g., Finish physics lab"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="font-medium text-gray-700 dark:text-gray-200">{t('tasks.subject')}</span>
-                <input
-                  value={formData.subject}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
-                  className={inputStyles}
-                  placeholder="Mathematics"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="font-medium text-gray-700 dark:text-gray-200">{t('tasks.dueDate')}</span>
-                <input
-                  type="datetime-local"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
-                  className={inputStyles}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="font-medium text-gray-700 dark:text-gray-200">{t('tasks.priority')}</span>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, priority: e.target.value }))}
-                  className={selectStyles}
-                >
-                  <option>{t('common.low')}</option>
-                  <option>{t('common.medium')}</option>
-                  <option>{t('common.high')}</option>
-                </select>
-              </label>
-
-              <button
-                type="submit"
-                className="w-full rounded-2xl bg-blue-500 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-600 hover:shadow-md active:scale-[0.98] dark:bg-blue-600 dark:hover:bg-blue-700"
-              >
-                {t('tasks.addTask')}
-              </button>
-            </form>
-          </SectionCard>
-
-          <SectionCard title={t('tasks.taskList')}>
-            <ul className="space-y-3">
-              {tasksSorted.map((task) => (
-                <li
-                  key={task.id}
-                  className="space-y-3 rounded-2xl border border-gray-200 bg-white px-4 py-4 text-sm shadow-sm dark:border-gray-700 dark:bg-gray-800"
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={task.done}
-                      onChange={() => toggleTask(task.id)}
-                      className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-semibold ${task.done ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>
-                        {task.title}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {formatDueDate(task.dueDate)} • {task.subject || t('common.general')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <span
-                      className={`inline-flex min-w-[90px] justify-center rounded-full px-3 py-1 text-xs font-semibold ${
-                        task.priority === 'High'
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                          : task.priority === 'Medium'
-                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
-                            : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                      }`}
-                    >
-                      {task.priority}
-                    </span>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-                      <button
-                        onClick={() => toggleTask(task.id)}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 sm:w-auto"
-                      >
-                        {task.done ? t('tasks.undo') : t('tasks.done')}
-                      </button>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-all hover:bg-red-100 active:scale-[0.98] dark:border-red-900 dark:bg-red-950/50 dark:text-red-300 dark:hover:bg-red-900/50 sm:w-auto"
-                      >
-                        {t('tasks.delete')}
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </SectionCard>
+    <div className="space-y-6 pb-20 lg:pb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Aufgaben</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Verwalte deine Aufgaben und To-Dos
+          </p>
         </div>
+        <Button onClick={() => setIsAddOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Aufgabe hinzufügen
+        </Button>
+      </div>
 
-        <div className="space-y-6">
-          <SectionCard title={t('tasks.focusTimer')}>
-            <div className="space-y-3">
-              {['25 min deep focus', '45 min review block', '90 min project'].map((preset) => (
-                <button
-                  key={preset}
-                  className="flex w-full items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left text-sm font-semibold text-gray-900 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
-                >
-                  {preset}
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Start</span>
-                </button>
-              ))}
-            </div>
-          </SectionCard>
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Gesamt</CardDescription>
+            <CardTitle className="text-2xl">{stats.total}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Offen</CardDescription>
+            <CardTitle className="text-2xl">{stats.todo}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>In Bearbeitung</CardDescription>
+            <CardTitle className="text-2xl">{stats.inProgress}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Erledigt</CardDescription>
+            <CardTitle className="text-2xl">{stats.done}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
 
-          <SectionCard title={t('tasks.quickActions')}>
-            <ul className="space-y-3">
-              {quickActions.map((action) => (
-                <li
-                  key={action}
-                  className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-                >
-                  {action}
-                </li>
-              ))}
-            </ul>
-          </SectionCard>
+      {/* Filters */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <SegmentedControl
+          options={[
+            { value: 'all' as const, label: 'Alle' },
+            { value: 'todo' as const, label: 'Offen' },
+            { value: 'in-progress' as const, label: 'In Bearbeitung' },
+            { value: 'done' as const, label: 'Erledigt' },
+          ]}
+          value={filter}
+          onChange={(value) => setFilter(value)}
+          size="sm"
+        />
+
+        {/* Search */}
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Aufgaben durchsuchen..."
+            className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+          />
         </div>
       </div>
-    </PlannerShell>
+
+      {/* Tasks List */}
+      <Card>
+        <CardContent className="p-0">
+          {filteredTasks.length > 0 ? (
+            <div className="divide-y divide-gray-200 dark:divide-gray-800">
+              {filteredTasks.map((task) => (
+                <ListRow
+                  key={task.id}
+                  leading={
+                    <input
+                      type="checkbox"
+                      checked={task.status === 'done'}
+                      onChange={() => toggleTaskStatus(task.id)}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                    />
+                  }
+                  subtitle={
+                    <div className="flex items-center gap-2 mt-1">
+                      {task.subjectName && (
+                        <ContextBadge type="task" label={task.subjectName} />
+                      )}
+                      {task.dueDate && (
+                        <>
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(task.dueDate).toLocaleDateString('de-DE', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  }
+                  trailing={
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          task.priority === 'high'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                            : task.priority === 'medium'
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                            : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                        }`}
+                      >
+                        {task.priority === 'high' ? 'Hoch' : task.priority === 'medium' ? 'Mittel' : 'Niedrig'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(task.id)}
+                      >
+                        Löschen
+                      </Button>
+                    </div>
+                  }
+                  interactive
+                  onClick={() => {
+                    router.push(generateDeepLink({ type: 'task', id: task.id }));
+                  }}
+                  className={task.status === 'done' ? 'opacity-60' : ''}
+                >
+                  <span className={task.status === 'done' ? 'line-through' : ''}>
+                    {task.title}
+                  </span>
+                </ListRow>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<CheckSquare className="h-8 w-8" />}
+              title={search ? 'Keine Aufgaben gefunden' : 'Noch keine Aufgaben'}
+              description={
+                search
+                  ? 'Versuche andere Suchbegriffe'
+                  : 'Erstelle deine erste Aufgabe, um zu beginnen'
+              }
+              action={
+                !search && (
+                  <Button onClick={() => setIsAddOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    Aufgabe hinzufügen
+                  </Button>
+                )
+              }
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Task Sheet */}
+      <Sheet
+        open={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        side="bottom"
+        size="lg"
+      >
+        <SheetHeader>
+          <SheetTitle>Neue Aufgabe</SheetTitle>
+          <SheetDescription>
+            Erstelle eine neue Aufgabe und verknüpfe sie optional mit einem Fach
+          </SheetDescription>
+        </SheetHeader>
+        <SheetContent>
+          <div className="space-y-4">
+            {/* Subject Selection */}
+            {subjects.length > 0 && (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Fach (optional)
+                </label>
+                <select
+                  value={formData.subjectId}
+                  onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="">Kein Fach</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Title */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Titel *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Aufgabentitel..."
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+                autoFocus
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Beschreibung (optional)
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Beschreibung..."
+                rows={3}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+              />
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Fälligkeitsdatum (optional)
+              </label>
+              <input
+                type="datetime-local"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+              />
+            </div>
+
+            {/* Priority */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Priorität
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) =>
+                  setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })
+                }
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="low">Niedrig</option>
+                <option value="medium">Mittel</option>
+                <option value="high">Hoch</option>
+              </select>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsAddOpen(false);
+                  setFormData({
+                    title: '',
+                    description: '',
+                    subjectId: '',
+                    dueDate: '',
+                    priority: 'medium',
+                  });
+                }}
+                className="flex-1"
+              >
+                Abbrechen
+              </Button>
+              <Button onClick={handleSubmit} className="flex-1">
+                Hinzufügen
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 }
-
