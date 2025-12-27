@@ -11,27 +11,36 @@ export async function triggerHaptic(type: 'light' | 'medium' | 'heavy' | 'succes
   try {
     // Check if Capacitor is available
     if (typeof window !== 'undefined' && (window as any).Capacitor) {
-      const { Haptics } = await import('@capacitor/haptics');
-      
-      switch (type) {
-        case 'light':
-          await Haptics.impact({ style: 'LIGHT' });
-          break;
-        case 'medium':
-          await Haptics.impact({ style: 'MEDIUM' });
-          break;
-        case 'heavy':
-          await Haptics.impact({ style: 'HEAVY' });
-          break;
-        case 'success':
-          await Haptics.notification({ type: 'SUCCESS' });
-          break;
-        case 'warning':
-          await Haptics.notification({ type: 'WARNING' });
-          break;
-        case 'error':
-          await Haptics.notification({ type: 'ERROR' });
-          break;
+      // Dynamic import with error handling - module might not be installed
+      try {
+        const HapticsModule = await import('@capacitor/haptics').catch(() => null);
+        if (!HapticsModule) return;
+        
+        const { Haptics } = HapticsModule;
+        
+        switch (type) {
+          case 'light':
+            await Haptics.impact({ style: 'LIGHT' });
+            break;
+          case 'medium':
+            await Haptics.impact({ style: 'MEDIUM' });
+            break;
+          case 'heavy':
+            await Haptics.impact({ style: 'HEAVY' });
+            break;
+          case 'success':
+            await Haptics.notification({ type: 'SUCCESS' });
+            break;
+          case 'warning':
+            await Haptics.notification({ type: 'WARNING' });
+            break;
+          case 'error':
+            await Haptics.notification({ type: 'ERROR' });
+            break;
+        }
+      } catch (importError) {
+        // Module not available, silently fail
+        console.debug('Haptics module not available');
       }
     }
   } catch (error) {
