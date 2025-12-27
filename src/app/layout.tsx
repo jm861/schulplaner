@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AppShell } from "@/components/layout/app-shell";
+import { AppShellV2 } from "@/components/app/app-shell-v2";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { LanguageProvider } from "@/contexts/language-context";
@@ -60,7 +60,7 @@ export default function RootLayout({
             <AuthProvider>
               <ToastProvider>
                 <ProtectedRoute>
-                  <AppShell>{children}</AppShell>
+                  <AppShellV2>{children}</AppShellV2>
                 </ProtectedRoute>
                 <UpdatePopup />
               </ToastProvider>
