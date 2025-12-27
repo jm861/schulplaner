@@ -193,34 +193,49 @@ export default function CalendarPage() {
     });
 
   return (
-    <PlannerShell
-      sidebar={
-        <>
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Q1 1. Term</p>
-            <p className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{t('calendar.title')}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{rangeLabel}</p>
+    <div className="space-y-6 pb-20 lg:pb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">{t('calendar.title')}</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{rangeLabel}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={() => setIsEditingSchedule(true)}
+            className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-600 hover:shadow-sm active:scale-[0.98] whitespace-nowrap"
+          >
+            {t('schedule.editSchedule')}
+          </button>
+          <button onClick={() => navigateWeek('prev')} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 whitespace-nowrap">
+            {t('calendar.prevWeek')}
+          </button>
+          <button onClick={goToToday} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 whitespace-nowrap">
+            {t('calendar.goToToday')}
+          </button>
+          <button onClick={() => navigateWeek('next')} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 whitespace-nowrap">
+            {t('calendar.nextWeek')}
+          </button>
+        </div>
+      </div>
+
+      {/* Next Holiday Card */}
+      {nextHoliday && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+          <p className="text-xs uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400">Ferien Countdown</p>
+          <div className="mt-3 flex items-baseline gap-2">
+            <p className="text-4xl font-semibold text-gray-900 dark:text-white">{getCountdownToNextHoliday() ?? 0}</p>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Tage</span>
           </div>
-          <PlannerNav items={navItems} label={t('planner.navigation')} />
-          {nextHoliday ? (
-            <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
-              <p className="text-xs uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400">Ferien Countdown</p>
-              <div className="mt-3 flex items-baseline gap-2">
-                <p className="text-4xl font-semibold text-gray-900 dark:text-white">{getCountdownToNextHoliday() ?? 0}</p>
-                <span className="text-sm text-gray-600 dark:text-gray-400">Tage</span>
-              </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300">bis {nextHoliday.name}</p>
-            </div>
-          ) : (
-            <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-              <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Ferien</p>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Keine anstehenden Ferien</p>
-            </div>
-          )}
-          <TodayOverview classes={todaysClasses} tasks={todaysTasks} t={t} />
-        </>
-      }
-    >
+          <p className="text-sm text-gray-700 dark:text-gray-300">bis {nextHoliday.name}</p>
+        </div>
+      )}
+
+      {/* Today Overview */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+        <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400 mb-3">Heute</p>
+        <TodayOverview classes={todaysClasses} tasks={todaysTasks} t={t} />
+      </div>
       {isEditingSchedule && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto">
           <div className="w-full max-w-2xl rounded-[32px] border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 my-8">
@@ -229,34 +244,8 @@ export default function CalendarPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 sm:gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Woche</p>
-            <p className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{t('calendar.description')}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button 
-              onClick={() => setIsEditingSchedule(true)}
-              className="rounded-2xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-600 hover:shadow-sm active:scale-[0.98] whitespace-nowrap"
-            >
-              {t('schedule.editSchedule')}
-            </button>
-            <button onClick={() => navigateWeek('prev')} className="rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 whitespace-nowrap">
-              {t('calendar.prevWeek')}
-            </button>
-            <button onClick={goToToday} className="rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 whitespace-nowrap">
-              {t('calendar.goToToday')}
-            </button>
-            <button onClick={() => navigateWeek('next')} className="rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 whitespace-nowrap">
-              {t('calendar.nextWeek')}
-            </button>
-          </div>
-        </div>
-
-        {/* Responsive calendar grid: single column on mobile, 2 on tablet, 5 on desktop */}
-        <div className="mt-2 pb-8">
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 max-w-3xl mx-auto px-4 sm:px-6">
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 max-w-3xl mx-auto">
             {displayDays.map((date) => {
               const dayData = getDayByDate(date) ?? ensureDayForDate(date);
               const dateStr = date.toISOString().split('T')[0];
@@ -346,8 +335,6 @@ export default function CalendarPage() {
               );
             })}
           </div>
-        </div>
-      </div>
 
       {classEditor && (
         <ClassEditorModal
@@ -399,7 +386,7 @@ export default function CalendarPage() {
           }}
         />
       )}
-    </PlannerShell>
+    </div>
   );
 }
 

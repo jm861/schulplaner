@@ -48,7 +48,6 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
 
   // Routes that use PlannerShell directly and should bypass AppShellV2
   const PLANNER_SHELL_ROUTES = [
-    '/calendar',
     '/study-plan',
     '/chat',
     '/substitution-plan',
