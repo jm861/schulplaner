@@ -12,8 +12,10 @@ export async function triggerHaptic(type: 'light' | 'medium' | 'heavy' | 'succes
     // Check if Capacitor is available
     if (typeof window !== 'undefined' && (window as any).Capacitor) {
       // Dynamic import with error handling - module might not be installed
+      // Using string literal to avoid TypeScript checking at build time
       try {
-        const HapticsModule = await import('@capacitor/haptics').catch(() => null);
+        const modulePath = '@capacitor/haptics';
+        const HapticsModule = await (eval(`import('${modulePath}')`) as Promise<any>).catch(() => null);
         if (!HapticsModule) return;
         
         const { Haptics } = HapticsModule;
