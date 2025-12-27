@@ -61,6 +61,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    const { onDrag, onDragStart, onDragEnd, ...restProps } = props;
+    
     return (
       <motion.button
         ref={ref}
@@ -68,7 +70,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.1 }}
-        {...props}
+        {...(restProps as any)}
       >
         {loading ? (
           <>
