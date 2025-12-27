@@ -134,8 +134,6 @@ export default function MaterialsPage() {
         title: material.title,
         type: material.sourceType === 'pdf' ? 'pdf' : 'image',
         content: material.text,
-        createdAt: material.createdAt,
-        updatedAt: material.createdAt,
       });
 
       toast.success('Material hochgeladen', material.title);
