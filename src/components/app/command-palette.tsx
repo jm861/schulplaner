@@ -1,32 +1,16 @@
 /**
  * Command Palette Component (⌘K)
- * Quick navigation and actions
+ * DEPRECATED: Use SearchFilter instead
+ * Kept for backwards compatibility - redirects to SearchFilter
  */
 
 'use client';
 
-import { useAppStore } from '@/store/app-store';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ListRow } from '@/components/ui/list-row';
-import { Search, Calendar, CheckSquare, FileText, BookOpen, Settings, Home } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
-import { cn } from '@/lib/cn';
-
-interface Command {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  action: () => void;
-  keywords: string[];
-  category: string;
-}
+import { SearchFilter } from './search-filter';
 
 export function CommandPalette() {
-  const router = useRouter();
-  const { isCommandPaletteOpen, closeCommandPalette, openQuickAdd } = useAppStore();
-  const [search, setSearch] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  // Redirect to SearchFilter for backwards compatibility
+  return <SearchFilter />;
 
   const commands: Command[] = useMemo(
     () => [

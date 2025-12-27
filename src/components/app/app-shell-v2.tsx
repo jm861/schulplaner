@@ -8,7 +8,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { cn } from '@/lib/cn';
-import { CommandPalette } from './command-palette';
+import { SearchFilter } from './search-filter';
 import { QuickAddSheet } from './quick-add-sheet';
 import { useAppStore } from '@/store/app-store';
 import {
@@ -170,7 +170,7 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
       </motion.button>
 
       {/* Global Components */}
-      <CommandPalette />
+      <SearchFilter />
       <QuickAddSheet />
     </>
   );

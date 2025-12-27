@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/contexts/language-context";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ServiceWorkerRegistrar } from "@/components/pwa/service-worker-registrar";
 import { UpdatePopup } from "@/components/updates/update-popup";
+import { ToastProvider } from "@/components/ui/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,10 +58,12 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
-              <ProtectedRoute>
-                <AppShell>{children}</AppShell>
-              </ProtectedRoute>
-              <UpdatePopup />
+              <ToastProvider>
+                <ProtectedRoute>
+                  <AppShell>{children}</AppShell>
+                </ProtectedRoute>
+                <UpdatePopup />
+              </ToastProvider>
             </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>

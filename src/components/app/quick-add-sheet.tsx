@@ -6,6 +6,7 @@
 'use client';
 
 import { useAppStore } from '@/store/app-store';
+import { useToastActions } from '@/components/ui/toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -13,6 +14,7 @@ import { CheckSquare, FileText, BookOpen } from 'lucide-react';
 
 export function QuickAddSheet() {
   const { isQuickAddOpen, closeQuickAdd, quickAddType, addTask, addNote, addMaterial, selectedSubjectId, selectedLessonId, subjects, lessons } = useAppStore();
+  const toast = useToastActions();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [subjectId, setSubjectId] = useState<string | undefined>(selectedSubjectId);
@@ -51,6 +53,7 @@ export function QuickAddSheet() {
         priority: 'medium',
         status: 'todo',
       });
+      toast.success('Aufgabe hinzugefügt', title);
     } else if (quickAddType === 'note') {
       addNote({
         title,
@@ -59,6 +62,7 @@ export function QuickAddSheet() {
         subjectName: selectedSubject?.name || selectedLesson?.subjectName,
         lessonId: selectedLessonId || currentLesson?.id,
       });
+      toast.success('Notiz hinzugefügt', title);
     } else if (quickAddType === 'material') {
       addMaterial({
         title,
@@ -68,6 +72,7 @@ export function QuickAddSheet() {
         subjectName: selectedSubject?.name || selectedLesson?.subjectName,
         lessonId: selectedLessonId || currentLesson?.id,
       });
+      toast.success('Material hinzugefügt', title);
     }
 
     closeQuickAdd();
