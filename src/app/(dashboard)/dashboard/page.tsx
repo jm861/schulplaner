@@ -23,8 +23,6 @@ export default function DashboardPage() {
     exams,
     lessons,
     subjects,
-    getUpcomingTasks,
-    getNextLesson,
   } = useAppStore();
 
   const upcomingTasks = useMemo(() => {
