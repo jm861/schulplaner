@@ -51,7 +51,6 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
     '/calendar',
     '/study-plan',
     '/settings',
-    '/materials',
     '/chat',
     '/substitution-plan',
     '/admin',

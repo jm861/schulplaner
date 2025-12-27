@@ -1,101 +1,95 @@
+/**
+ * Materials Page - Apple-like Design
+ * Upload and manage materials (PDFs, images) with OCR and AI summaries
+ */
+
 'use client';
 
 import { useEffect, useState } from 'react';
-
-import { SectionCard } from '@/components/ui/section-card';
+import { useAppStore } from '@/store/app-store';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ListRow } from '@/components/ui/list-row';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { ContextBadge } from '@/components/ui/smart-link';
+import { useToastActions } from '@/components/ui/toast';
+import { FileText, Plus, Upload, Sparkles, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { generateDeepLink } from '@/types/entities';
 import { useAuth } from '@/contexts/auth-context';
-import { useLanguage } from '@/contexts/language-context';
 import { MaterialRecord } from '@/types/materials';
-import { subtleButtonStyles } from '@/styles/theme';
-import { PlannerShell, PlannerNav } from '@/components/layout/planner-shell';
-import { buildPlannerNavItems } from '@/lib/planner-nav';
 
-type SummaryState = {
-  loading: boolean;
-  text?: string;
-  error?: string | null;
-};
-
-const MAX_SNIPPET = 300; // Reduced for mobile
-const MOBILE_MAX_SNIPPET = 150;
+const MAX_SNIPPET = 300;
 
 export default function MaterialsPage() {
-  const { user, isAdmin, isOperator } = useAuth();
-  const { t } = useLanguage();
-  const [materials, setMaterials] = useState<MaterialRecord[]>([]);
+  const router = useRouter();
+  const { user } = useAuth();
+  const { materials, subjects, addMaterial } = useAppStore();
+  const toast = useToastActions();
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [customTitle, setCustomTitle] = useState('');
-  const [summaries, setSummaries] = useState<Record<string, SummaryState>>({});
-  const [isLoadingList, setIsLoadingList] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [summaries, setSummaries] = useState<Record<string, { loading: boolean; text?: string; error?: string }>>({});
   const [expandedMaterials, setExpandedMaterials] = useState<Set<string>>(new Set());
+  const [serverMaterials, setServerMaterials] = useState<MaterialRecord[]>([]);
+
+  // Fetch materials from server
+  useEffect(() => {
+    if (!user) return;
+    fetchMaterials();
+  }, [user?.id]);
 
   const fetchMaterials = async () => {
     if (!user) return;
     try {
-      setIsLoadingList(true);
       const res = await fetch(`/api/materials?userId=${encodeURIComponent(user.id)}`);
-      if (!res.ok) {
-        throw new Error('Materialien konnten nicht geladen werden.');
+      if (res.ok) {
+        const data = (await res.json()) as { materials: MaterialRecord[] };
+        setServerMaterials(data.materials ?? []);
       }
-      const data = (await res.json()) as { materials: MaterialRecord[] };
-      setMaterials(data.materials ?? []);
     } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoadingList(false);
+      console.error('Failed to fetch materials:', error);
     }
   };
 
-  useEffect(() => {
-    fetchMaterials();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  // Combine store materials with server materials
+  const allMaterials = useMemo(() => {
+    const combined = [...materials];
+    serverMaterials.forEach((sm) => {
+      if (!combined.find((m) => m.id === sm.id)) {
+        combined.push({
+          id: sm.id,
+          title: sm.title,
+          type: sm.sourceType === 'pdf' ? 'pdf' : 'image',
+          content: sm.text,
+          subjectId: undefined,
+          subjectName: undefined,
+          createdAt: sm.createdAt,
+          updatedAt: sm.createdAt,
+        });
+      }
+    });
+    return combined.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [materials, serverMaterials]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (file: File | null) => {
+    setSelectedFile(file);
     setUploadError(null);
-    setUploadSuccess(false);
-    const file = event.target.files?.[0];
-    setSelectedFile(file ?? null);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    setUploadError(null);
-    setUploadSuccess(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && (file.type === 'application/pdf' || file.type.startsWith('image/'))) {
-      setSelectedFile(file);
-    } else {
-      setUploadError('Bitte wähle eine PDF- oder Bilddatei aus.');
+    if (file && !customTitle.trim()) {
+      setCustomTitle(file.name.replace(/\.[^/.]+$/, ''));
     }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
   };
 
   const handleUpload = async () => {
-    if (isUploading) return; // Prevent multiple simultaneous requests
-    
-    if (!selectedFile || !user) {
-      setUploadError('Bitte wähle eine Datei aus.');
-      return;
-    }
+    if (isUploading || !selectedFile || !user) return;
 
     try {
       setIsUploading(true);
       setUploadError(null);
+
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('userId', user.id);
@@ -114,90 +108,68 @@ export default function MaterialsPage() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || (data as any).ok === false) {
-        const errorData = data as { ok?: boolean; status?: number; raw?: string; error?: string; userMessage?: string };
+        const errorData = data as { ok?: boolean; status?: number; error?: string };
         const status = errorData.status || res.status;
-        const raw = errorData.raw || '';
-        
+
         let errorMsg = 'Upload fehlgeschlagen.';
-        
-        // Prioritize user-friendly error message if available
-        if (errorData.userMessage) {
-          errorMsg = errorData.userMessage;
-        } else if (errorData.error) {
-          errorMsg = errorData.error;
-        } else if (status === 429) {
+        if (status === 429) {
           errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
         } else if (status === 401) {
           errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
         } else if (status === 500) {
           errorMsg = 'Interner Serverfehler beim Upload/OCR.';
-        } else if (status === 400) {
-          // Bad Request - try to extract user-friendly message
-          try {
-            const rawParsed = JSON.parse(raw);
-            errorMsg = rawParsed.userMessage || rawParsed.message || 'Ungültige Datei oder Format.';
-          } catch {
-            errorMsg = 'Ungültige Datei oder Format.';
-          }
-        } else {
-          try {
-            const rawParsed = JSON.parse(raw);
-            const rawMessage = rawParsed.userMessage || rawParsed.message || '';
-            if (rawMessage) {
-              errorMsg = rawMessage;
-            } else {
-              errorMsg = `Fehler: ${raw || status}`;
-            }
-          } catch {
-            errorMsg = `Upload fehlgeschlagen: ${raw || status}`;
-          }
+        } else if (errorData.error) {
+          errorMsg = errorData.error;
         }
-        
+
         setUploadError(errorMsg);
-        setUploadSuccess(false);
+        toast.error('Upload fehlgeschlagen', errorMsg);
         return;
       }
 
-      setMaterials((prev) => [(data as { material: MaterialRecord }).material, ...prev]);
+      const material = (data as { material: MaterialRecord }).material;
+      
+      // Add to store
+      addMaterial({
+        title: material.title,
+        type: material.sourceType === 'pdf' ? 'pdf' : 'image',
+        content: material.text,
+        createdAt: material.createdAt,
+        updatedAt: material.createdAt,
+      });
+
+      toast.success('Material hochgeladen', material.title);
       setSelectedFile(null);
       setCustomTitle('');
-      setUploadError(null);
-      setUploadSuccess(true);
-      // Clear success message after 3 seconds
-      setTimeout(() => setUploadSuccess(false), 3000);
+      setIsUploadOpen(false);
+      fetchMaterials();
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Upload fehlgeschlagen.');
-      setUploadSuccess(false);
+      const errorMsg = error instanceof Error ? error.message : 'Upload fehlgeschlagen.';
+      setUploadError(errorMsg);
+      toast.error('Upload fehlgeschlagen', errorMsg);
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleGenerateSummary = async (material: MaterialRecord) => {
-    if (!material?.text) return;
-    
-    // Prevent multiple simultaneous requests for same material
-    const currentState = summaries[material.id];
+  const handleGenerateSummary = async (materialId: string) => {
+    const material = allMaterials.find((m) => m.id === materialId);
+    if (!material?.content) return;
+
+    const currentState = summaries[materialId];
     if (currentState?.loading) return;
-    
+
     setSummaries((prev) => ({
       ...prev,
-      [material.id]: { loading: true },
+      [materialId]: { loading: true },
     }));
 
     try {
-      // Send more context to AI for better understanding
-      const contextInfo = [
-        material.title ? `Titel: ${material.title}` : '',
-        material.meta?.pageCount ? `Seiten: ${material.meta.pageCount}` : '',
-        material.sourceType === 'pdf' ? 'Typ: PDF-Dokument' : 'Typ: Foto/Scan',
-      ].filter(Boolean).join(', ');
-
       const res = await fetch('/api/ai-summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `[Kontext: ${contextInfo}]\n\n${material.text.slice(0, 20000)}`,
+          text: material.content.slice(0, 20000),
           tone: 'concise',
         }),
       });
@@ -205,65 +177,32 @@ export default function MaterialsPage() {
       const data = await res.json();
 
       if (!res.ok || (data as any).ok === false) {
-        const errorData = data as { ok?: boolean; status?: number; raw?: string; error?: string };
-        const status = errorData.status || res.status;
-        const raw = errorData.raw || '';
-        
+        const errorData = data as { ok?: boolean; status?: number; error?: string };
         let errorMsg = 'Unbekannter Fehler';
-        if (status === 429) {
+        if (errorData.status === 429) {
           errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
-        } else if (status === 401) {
+        } else if (errorData.status === 401) {
           errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
-        } else if (status === 500) {
-          errorMsg = 'Interner Serverfehler beim Zusammenfassen.';
         } else if (errorData.error) {
-          // Check if error message is in English and translate common ones
-          const errorText = errorData.error.toLowerCase();
-          if (errorText.includes('rate limit') || errorText.includes('rate_limit')) {
-            errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
-          } else if (errorText.includes('api key') || errorText.includes('unauthorized')) {
-            errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
-          } else {
-            errorMsg = errorData.error;
-          }
-        } else {
-          try {
-            const rawParsed = JSON.parse(raw);
-            const rawMessage = rawParsed.message || '';
-            // Translate common English error messages
-            if (rawMessage.toLowerCase().includes('rate limit') || rawMessage.toLowerCase().includes('rate_limit')) {
-              errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
-            } else if (rawMessage.toLowerCase().includes('api key') || rawMessage.toLowerCase().includes('unauthorized')) {
-              errorMsg = 'OpenAI API Key ungültig oder falsch konfiguriert.';
-            } else {
-              errorMsg = `Fehler: ${rawMessage || raw}`;
-            }
-          } catch {
-            // If raw is not JSON, check if it contains English error messages
-            const rawLower = raw.toLowerCase();
-            if (rawLower.includes('rate limit') || rawLower.includes('rate_limit') || rawLower.includes('please try again in a moment')) {
-              errorMsg = 'Rate limit exceeded. Bitte warte kurz.';
-            } else {
-              errorMsg = `Unbekannter Fehler: ${raw || status}`;
-            }
-          }
+          errorMsg = errorData.error;
         }
-        
+
         setSummaries((prev) => ({
           ...prev,
-          [material.id]: { loading: false, error: errorMsg },
+          [materialId]: { loading: false, error: errorMsg },
         }));
         return;
       }
 
       setSummaries((prev) => ({
         ...prev,
-        [material.id]: { loading: false, text: (data as { summary?: string }).summary ?? 'Keine Zusammenfassung verfügbar.' },
+        [materialId]: { loading: false, text: (data as { summary?: string }).summary ?? 'Keine Zusammenfassung verfügbar.' },
       }));
+      toast.success('Zusammenfassung generiert', 'KI-Zusammenfassung wurde erstellt.');
     } catch (error) {
       setSummaries((prev) => ({
         ...prev,
-        [material.id]: { loading: false, error: error instanceof Error ? error.message : 'Fehler' },
+        [materialId]: { loading: false, error: error instanceof Error ? error.message : 'Fehler' },
       }));
     }
   };
@@ -280,265 +219,235 @@ export default function MaterialsPage() {
     });
   };
 
-  const snippet = (text: string, materialId: string) => {
+  const getSnippet = (text: string, materialId: string) => {
     const isExpanded = expandedMaterials.has(materialId);
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-    const maxLength = isMobile ? MOBILE_MAX_SNIPPET : MAX_SNIPPET;
-    
-    if (isExpanded || text.length <= maxLength) return text;
-    
-    // Try to find a good breaking point (sentence end, paragraph, etc.)
-    const truncated = text.slice(0, maxLength);
-    const lastPeriod = truncated.lastIndexOf('.');
-    const lastNewline = truncated.lastIndexOf('\n');
-    const breakPoint = Math.max(lastPeriod, lastNewline);
-    
-    if (breakPoint > maxLength * 0.7) {
-      return text.slice(0, breakPoint + 1) + '…';
-    }
-    return truncated + '…';
+    if (isExpanded || text.length <= MAX_SNIPPET) return text;
+    return text.slice(0, MAX_SNIPPET) + '…';
   };
 
-  const navItems = buildPlannerNavItems(t, { isAdmin, isOperator });
-
   return (
-    <PlannerShell
-      sidebar={
-        <>
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Materials</p>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{t('materials.title')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{t('materials.description')}</p>
-          </div>
-          <PlannerNav items={navItems} label={t('planner.navigation')} />
-          <div className="mt-8 space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Gespeichert</p>
-            <p className="text-3xl font-semibold text-gray-900 dark:text-white">{materials.length}</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">{t('materials.materialsStored')}</p>
-          </div>
-        </>
-      }
-    >
-      <div className="space-y-6">
-        <SectionCard title={t('materials.uploadTitle')}>
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2 text-sm">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">{t('materials.customTitle')}</label>
-            <input
-              type="text"
-              value={customTitle}
-              onChange={(e) => setCustomTitle(e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900/40 dark:text-white dark:focus:border-blue-500"
-              placeholder={t('materials.titlePlaceholder')}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2 text-sm">
-            <label className="font-semibold text-slate-700 dark:text-slate-300">{t('materials.fileLabel')}</label>
-            <div
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              className={`rounded-2xl border-2 border-dashed transition-all ${
-                isDragging
-                  ? 'border-blue-400 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-950/30'
-                  : 'border-slate-300 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-900/40'
-              }`}
-            >
-              <input
-                type="file"
-                accept="application/pdf,image/*"
-                capture="environment"
-                onChange={handleFileChange}
-                className="w-full cursor-pointer px-4 py-6 text-xs text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-slate-300 dark:file:bg-indigo-950/50 dark:file:text-indigo-300"
-                id="file-upload"
-              />
-              {!selectedFile && (
-                <p className="px-4 pb-4 text-center text-xs text-slate-400 dark:text-slate-500">
-                  Datei hier ablegen oder klicken zum Auswählen
-                </p>
-              )}
-            </div>
-            {selectedFile ? (
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900/40">
-                <span className="text-xl">
-                  {selectedFile.type === 'application/pdf' ? '📄' : '🖼️'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-slate-900 dark:text-white truncate">{selectedFile.name}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedFile(null);
-                    setUploadError(null);
-                    setUploadSuccess(false);
-                  }}
-                  className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
-                  aria-label="Datei entfernen"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={handleUpload}
-              disabled={!selectedFile || isUploading || !user}
-              className={`${subtleButtonStyles} relative w-full px-6 py-3 disabled:cursor-not-allowed disabled:opacity-60 transition-all`}
-            >
-              {isUploading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                  {t('materials.uploading')}
-                </span>
-              ) : (
-                t('materials.uploadCta')
-              )}
-            </button>
-            {uploadSuccess && (
-              <div className="flex items-center gap-2 rounded-xl border border-green-400 bg-green-50/50 px-3 py-2.5 text-xs text-green-900 dark:border-green-900 dark:bg-green-950/50 dark:text-green-100">
-                <span className="text-base">✓</span>
-                <span>Material erfolgreich hochgeladen und Text extrahiert!</span>
-              </div>
-            )}
-            {uploadError && (
-              <div className="flex items-center gap-2 rounded-xl border border-rose-400 bg-rose-50/50 px-3 py-2.5 text-xs text-rose-900 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-100">
-                <span className="text-base">✕</span>
-                <span className="break-words">{uploadError}</span>
-              </div>
-            )}
-            {!user && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('materials.loginInfo')}
-              </p>
-            )}
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard title={t('materials.listTitle')}>
-        {isLoadingList ? (
-          <p className="text-sm text-slate-500">{t('common.loading')}</p>
-        ) : materials.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {t('materials.emptyState')}
+    <div className="space-y-6 pb-20 lg:pb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Materialien</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Lade PDFs und Bilder hoch, OCR extrahiert automatisch den Text
           </p>
-        ) : (
-          <ul className="space-y-4">
-            {materials.map((material) => {
-              const summary = summaries[material.id];
-              const isExpanded = expandedMaterials.has(material.id);
-              const needsExpansion = material.text.length > (typeof window !== 'undefined' && window.innerWidth < 640 ? MOBILE_MAX_SNIPPET : MAX_SNIPPET);
-              return (
-                <li
-                  key={material.id}
-                  className="rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm dark:border-slate-700 dark:bg-slate-900/40"
-                >
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
-                      <span className="flex items-center gap-1.5">
-                        <span>{material.sourceType === 'pdf' ? '📄' : '🖼️'}</span>
-                        <span>{material.sourceType === 'pdf' ? 'PDF' : 'Foto'}</span>
-                      </span>
-                      <span>
-                        {new Date(material.createdAt).toLocaleDateString('de-DE', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                        })}
-                      </span>
-                    </div>
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-white break-words">{material.title}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {material.meta?.charCount
-                        ? `${material.meta.charCount.toLocaleString()} Zeichen`
-                        : material.text.length.toLocaleString()}
-                      {material.meta?.pageCount ? ` • ${material.meta.pageCount} Seiten` : null}
-                    </p>
-                    <div className="mt-2">
-                      <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line break-words leading-relaxed">
-                        {snippet(material.text, material.id)}
-                      </p>
-                      {needsExpansion && (
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(material.id)}
-                          className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          {isExpanded ? 'Weniger anzeigen' : 'Mehr anzeigen'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
+        </div>
+        <Button onClick={() => setIsUploadOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Material hochladen
+        </Button>
+      </div>
 
-                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                          navigator.clipboard.writeText(material.text);
-                          // Visual feedback
-                          const btn = e.currentTarget;
-                          const originalText = btn.textContent;
-                          btn.textContent = '✓ Kopiert!';
-                          setTimeout(() => {
-                            btn.textContent = originalText;
-                          }, 2000);
-                        }
+      {/* Materials List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Meine Materialien</CardTitle>
+          <CardDescription>
+            {allMaterials.length} {allMaterials.length === 1 ? 'Material' : 'Materialien'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {allMaterials.length > 0 ? (
+            <div className="divide-y divide-gray-200 dark:divide-gray-800">
+              {allMaterials.map((material) => {
+                const summary = summaries[material.id];
+                const isExpanded = expandedMaterials.has(material.id);
+                const snippet = getSnippet(material.content || '', material.id);
+
+                return (
+                  <div key={material.id} className="p-4">
+                    <ListRow
+                      leading={<FileText className="h-4 w-4 text-gray-400" />}
+                      subtitle={
+                        <div className="flex items-center gap-2 mt-1">
+                          {material.subjectName && (
+                            <ContextBadge type="material" label={material.subjectName} />
+                          )}
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {material.type === 'pdf' ? 'PDF' : 'Bild'} •{' '}
+                            {new Date(material.updatedAt).toLocaleDateString('de-DE', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      }
+                      trailing={
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleGenerateSummary(material.id)}
+                            disabled={summary?.loading}
+                          >
+                            {summary?.loading ? (
+                              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                            ) : (
+                              <Sparkles className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      }
+                      interactive
+                      onClick={() => {
+                        router.push(generateDeepLink({ type: 'material', id: material.id }));
                       }}
-                      className={`${subtleButtonStyles} text-xs flex-1 sm:flex-none`}
                     >
-                      {t('materials.copy')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleGenerateSummary(material)}
-                      disabled={summary?.loading}
-                      className={`${subtleButtonStyles} text-xs flex-1 sm:flex-none disabled:cursor-not-allowed disabled:opacity-60`}
-                    >
-                      {summary?.loading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                          {t('materials.summarizing')}
-                        </span>
-                      ) : (
-                        t('materials.summarize')
-                      )}
-                    </button>
-                  </div>
+                      {material.title}
+                    </ListRow>
 
-                  {summary?.text ? (
-                    <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50/50 p-4 text-sm text-slate-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-slate-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">✨</span>
-                        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">
-                          {t('materials.summaryLabel')}
+                    {/* Content Preview */}
+                    {material.content && (
+                      <div className="mt-3 ml-7">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                          {snippet}
+                        </p>
+                        {material.content.length > MAX_SNIPPET && (
+                          <button
+                            onClick={() => toggleExpand(material.id)}
+                            className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            {isExpanded ? 'Weniger anzeigen' : 'Mehr anzeigen'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Summary */}
+                    {summary?.text && (
+                      <div className="mt-3 ml-7 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                            KI-Zusammenfassung
+                          </p>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          {summary.text}
                         </p>
                       </div>
-                      <p className="mt-2 whitespace-pre-line break-words leading-relaxed">{summary.text}</p>
-                    </div>
-                  ) : null}
-                  {summary?.error ? (
-                    <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/50 px-3 py-2 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
-                      {summary.error}
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </SectionCard>
-      </div>
-    </PlannerShell>
+                    )}
+
+                    {/* Summary Error */}
+                    {summary?.error && (
+                      <div className="mt-3 ml-7 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/30">
+                        <p className="text-xs text-red-700 dark:text-red-300">{summary.error}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<FileText className="h-8 w-8" />}
+              title="Noch keine Materialien"
+              description="Lade PDFs oder Bilder hoch, um zu beginnen"
+              action={
+                <Button onClick={() => setIsUploadOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Material hochladen
+                </Button>
+              }
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Upload Sheet */}
+      <Sheet open={isUploadOpen} onOpenChange={setIsUploadOpen} side="bottom" size="lg">
+        <SheetHeader>
+          <SheetTitle>Material hochladen</SheetTitle>
+          <SheetDescription>
+            Lade eine PDF-Datei oder ein Bild hoch. Der Text wird automatisch extrahiert.
+          </SheetDescription>
+        </SheetHeader>
+        <SheetContent>
+          <div className="space-y-4">
+            {/* File Input */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Datei *
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+              {selectedFile && (
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800">
+                  <FileText className="h-4 w-4 text-gray-400" />
+                  <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+                    {selectedFile.name}
+                  </span>
+                  <button
+                    onClick={() => handleFileSelect(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Custom Title */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Titel (optional)
+              </label>
+              <input
+                type="text"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder="Material-Titel..."
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+              />
+            </div>
+
+            {/* Error Message */}
+            {uploadError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/30">
+                <p className="text-sm text-red-700 dark:text-red-300">{uploadError}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsUploadOpen(false);
+                  setSelectedFile(null);
+                  setCustomTitle('');
+                  setUploadError(null);
+                }}
+                className="flex-1"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={handleUpload}
+                disabled={!selectedFile || isUploading}
+                className="flex-1"
+                loading={isUploading}
+              >
+                <Upload className="h-4 w-4" />
+                {isUploading ? 'Lädt hoch...' : 'Hochladen'}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 }
-
-
