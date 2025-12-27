@@ -46,6 +46,19 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
   const { openCommandPalette, openQuickAdd } = useAppStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Routes that use PlannerShell directly and should bypass AppShellV2
+  const PLANNER_SHELL_ROUTES = [
+    '/calendar',
+    '/tasks',
+    '/exams',
+    '/study-plan',
+    '/settings',
+    '/materials',
+    '/chat',
+    '/substitution-plan',
+    '/admin',
+  ];
+
   // Check if current route should use AppShell
   const shouldUseShell = !pathname.startsWith('/login') &&
     !pathname.startsWith('/register') &&
@@ -53,7 +66,8 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
     !pathname.startsWith('/reset-password') &&
     !pathname.startsWith('/verify') &&
     !pathname.startsWith('/welcome') &&
-    !pathname.startsWith('/onboarding');
+    !pathname.startsWith('/onboarding') &&
+    !PLANNER_SHELL_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'));
 
   if (!shouldUseShell) {
     return <>{children}</>;
