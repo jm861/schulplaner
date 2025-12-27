@@ -41,6 +41,7 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(
       : '';
 
     const Component = interactive ? motion.div : 'div';
+    const { onDrag, onDragStart, onDragEnd, ...restProps } = props;
     const motionProps = interactive
       ? {
           whileTap: { scale: 0.98 },
@@ -52,8 +53,8 @@ export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(
       <Component
         ref={ref}
         className={cn(baseStyles, stateStyles, className)}
-        {...motionProps}
-        {...props}
+        {...(interactive ? motionProps : {})}
+        {...(restProps as any)}
       >
         {leading && <div className="flex-shrink-0">{leading}</div>}
         <div className="flex-1 min-w-0">

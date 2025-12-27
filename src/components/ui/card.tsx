@@ -29,6 +29,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       : '';
 
     const Component = interactive ? motion.div : 'div';
+    const { onDrag, onDragStart, onDragEnd, ...restProps } = props;
     const motionProps = interactive
       ? {
           whileHover: { scale: 1.01 },
@@ -41,8 +42,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <Component
         ref={ref}
         className={cn(baseStyles, variants[variant], interactiveStyles, className)}
-        {...motionProps}
-        {...props}
+        {...(interactive ? motionProps : {})}
+        {...(restProps as any)}
       >
         {children}
       </Component>
