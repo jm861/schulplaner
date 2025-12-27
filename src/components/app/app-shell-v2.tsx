@@ -50,7 +50,6 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
   const PLANNER_SHELL_ROUTES = [
     '/calendar',
     '/study-plan',
-    '/settings',
     '/chat',
     '/substitution-plan',
     '/admin',
