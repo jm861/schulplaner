@@ -1,0 +1,181 @@
+/**
+ * Sheet Component (Bottom Sheet / Side Sheet)
+ * Apple-like sheet with backdrop and smooth animations
+ * Uses Radix UI Dialog as base for accessibility
+ */
+
+'use client';
+
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { cn } from '@/lib/cn';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+import { forwardRef, type ReactNode } from 'react';
+
+export interface SheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+}
+
+const sideVariants = {
+  top: {
+    initial: { y: '-100%' },
+    animate: { y: 0 },
+    exit: { y: '-100%' },
+  },
+  right: {
+    initial: { x: '100%' },
+    animate: { x: 0 },
+    exit: { x: '100%' },
+  },
+  bottom: {
+    initial: { y: '100%' },
+    animate: { y: 0 },
+    exit: { y: '100%' },
+  },
+  left: {
+    initial: { x: '-100%' },
+    animate: { x: 0 },
+    exit: { x: '-100%' },
+  },
+};
+
+const sizeClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  full: 'max-w-full',
+};
+
+export function Sheet({
+  open,
+  onOpenChange,
+  children,
+  side = 'bottom',
+  size = 'md',
+}: SheetProps) {
+  const variants = sideVariants[side];
+  const isBottom = side === 'bottom';
+
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop */}
+            <DialogPrimitive.Overlay asChild>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+              />
+            </DialogPrimitive.Overlay>
+
+            {/* Sheet Content */}
+            <DialogPrimitive.Content asChild>
+              <motion.div
+                initial={variants.initial}
+                animate={variants.animate}
+                exit={variants.exit}
+                transition={{
+                  type: 'spring',
+                  stiffness: 300,
+                  damping: 30,
+                }}
+                className={cn(
+                  'fixed z-50 bg-white dark:bg-gray-900 shadow-2xl',
+                  isBottom
+                    ? 'bottom-0 left-0 right-0 rounded-t-3xl border-t border-gray-200 dark:border-gray-800'
+                    : side === 'right'
+                    ? 'top-0 right-0 bottom-0 rounded-l-3xl border-l border-gray-200 dark:border-gray-800'
+                    : side === 'left'
+                    ? 'top-0 left-0 bottom-0 rounded-r-3xl border-r border-gray-200 dark:border-gray-800'
+                    : 'top-0 left-0 right-0 rounded-b-3xl border-b border-gray-200 dark:border-gray-800',
+                  !isBottom && sizeClasses[size],
+                  isBottom && 'max-h-[90vh]'
+                )}
+              >
+                {children}
+              </motion.div>
+            </DialogPrimitive.Content>
+          </>
+        )}
+      </AnimatePresence>
+    </DialogPrimitive.Root>
+  );
+}
+
+export const SheetHeader = forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn('flex flex-col space-y-2 p-6 pb-4', className)}
+    {...props}
+  />
+));
+SheetHeader.displayName = 'SheetHeader';
+
+export const SheetTitle = forwardRef<
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h2
+    ref={ref}
+    className={cn('text-lg font-semibold text-gray-900 dark:text-white', className)}
+    {...props}
+  />
+));
+SheetTitle.displayName = 'SheetTitle';
+
+export const SheetDescription = forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn('text-sm text-gray-500 dark:text-gray-400', className)}
+    {...props}
+  />
+));
+SheetDescription.displayName = 'SheetDescription';
+
+export const SheetContent = forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn('overflow-y-auto p-6', className)}
+    {...props}
+  />
+));
+SheetContent.displayName = 'SheetContent';
+
+export const SheetClose = forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Close asChild>
+    <button
+      ref={ref}
+      className={cn(
+        'absolute right-4 top-4 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-100 transition-colors',
+        className
+      )}
+      {...props}
+    >
+      <X className="h-4 w-4" />
+      <span className="sr-only">Close</span>
+    </button>
+  </DialogPrimitive.Close>
+));
+SheetClose.displayName = 'SheetClose';
+
