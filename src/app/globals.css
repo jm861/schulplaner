@@ -26,13 +26,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
+:root {
+  color-scheme: light dark;
+}
+
 .dark {
   --background: #0a0a0a;
   --foreground: #f5f5f7;
 }
 
-:root {
-  color-scheme: light dark;
+/* Ensure dark mode is applied to html element */
+html.dark {
+  color-scheme: dark;
+}
+
+html:not(.dark) {
+  color-scheme: light;
 }
 
 body {

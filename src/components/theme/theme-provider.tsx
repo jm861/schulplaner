@@ -41,6 +41,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       root.classList.remove('light', 'dark');
       root.classList.add(theme);
       root.style.colorScheme = theme;
+      
+      // Force a reflow to ensure the class is applied
+      void root.offsetHeight;
+      
+      // Debug log
+      console.log('[Theme] Applied theme:', theme, 'Class:', root.classList.contains('dark') ? 'dark' : 'light');
     };
     
     // Apply initial theme
@@ -101,18 +107,28 @@ export function useTheme() {
       setThemeState(newTheme);
       
       const root = document.documentElement;
+      let actualTheme: 'light' | 'dark';
+      
       if (newTheme === 'system') {
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        root.classList.remove('light', 'dark');
-        root.classList.add(systemTheme);
-        root.style.colorScheme = systemTheme;
+        actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       } else {
-        root.classList.remove('light', 'dark');
-        root.classList.add(newTheme);
-        root.style.colorScheme = newTheme;
+        actualTheme = newTheme;
       }
-    } catch {
-      // ignore storage errors
+      
+      // Force remove all theme classes first
+      root.classList.remove('light', 'dark');
+      
+      // Add the new theme class
+      root.classList.add(actualTheme);
+      root.style.colorScheme = actualTheme;
+      
+      // Force a reflow to ensure the class is applied
+      void root.offsetHeight;
+      
+      // Debug log
+      console.log('[Theme] Set theme:', newTheme, '→', actualTheme, 'Class:', root.classList.contains('dark') ? 'dark' : 'light');
+    } catch (error) {
+      console.error('[Theme] Error setting theme:', error);
     }
   };
 
