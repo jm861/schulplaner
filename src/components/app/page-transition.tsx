@@ -24,8 +24,8 @@ export function PageTransition({ children }: { children: ReactNode }) {
         damping: 30,
         mass: 0.8,
       }}
-      className="relative w-full min-h-screen"
-      style={{ willChange: 'opacity, transform' }}
+      className="relative w-full min-h-screen overflow-x-hidden"
+      style={{ willChange: 'opacity, transform', maxWidth: '100vw' }}
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {children}

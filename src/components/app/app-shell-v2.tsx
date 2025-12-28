@@ -71,9 +71,9 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-gray-50 dark:bg-gray-950">
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white dark:lg:border-gray-800 dark:lg:bg-gray-900">
+        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:flex-shrink-0 lg:border-r lg:border-gray-200 lg:bg-white dark:lg:border-gray-800 dark:lg:bg-gray-900">
           <div className="flex flex-1 flex-col gap-4 p-4">
             {/* Logo/Brand */}
             <div className="px-4 py-2">
@@ -137,7 +137,7 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-x-hidden bg-gray-50 dark:bg-gray-950">
+        <main className="flex-1 min-w-0 overflow-x-hidden bg-gray-50 dark:bg-gray-950">
           <PageTransition>{children}</PageTransition>
         </main>
       </div>
