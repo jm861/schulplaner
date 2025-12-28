@@ -280,6 +280,22 @@ export default function SettingsPage() {
                   {t('settings.pushDeniedHint')}
                 </p>
               )}
+              {/* Test Notification Button (Dev only) */}
+              {process.env.NODE_ENV === 'development' && permission === 'granted' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    sendLocalNotification('Test-Benachrichtigung', {
+                      body: 'Dies ist eine Test-Benachrichtigung',
+                      tag: 'test',
+                    });
+                  }}
+                  className="mt-2 w-full"
+                >
+                  Test-Benachrichtigung senden
+                </Button>
+              )}
             </div>
           )}
           <div className="space-y-2">
