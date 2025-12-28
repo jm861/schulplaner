@@ -13,7 +13,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useLanguage } from '@/contexts/language-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useWeeklyPlan } from '@/hooks/use-weekly-plan';
-import { useTheme } from '@/components/theme/theme-provider';
+import { useTheme } from 'next-themes';
 import { readJSON, writeJSON } from '@/lib/storage';
 import { type Language } from '@/lib/i18n';
 import { useTeachers } from '@/hooks/use-teachers';
@@ -375,7 +375,7 @@ export default function SettingsPage() {
                   { value: 'light' as const, label: t('common.light') },
                   { value: 'dark' as const, label: t('common.dark') },
                 ]}
-                value={theme}
+                value={currentTheme}
                 onChange={(value) => setTheme(value)}
                 className="w-full"
               />
