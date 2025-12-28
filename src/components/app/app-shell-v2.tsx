@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { PageTransition } from './page-transition';
 
 interface NavItem {
   href: string;
@@ -138,13 +139,13 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
         {/* Main Content */}
         <main className="flex-1 overflow-x-hidden bg-gray-50 dark:bg-gray-950">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </div>
         </main>
       </div>
 
       {/* Bottom Tabbar - Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/80 backdrop-blur-lg dark:border-gray-800 dark:bg-gray-900/80 lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/80 backdrop-blur-lg dark:border-gray-800 dark:bg-gray-900/80 lg:hidden pb-[env(safe-area-inset-bottom,0px)]">
         <div className="flex h-16 items-center justify-around">
           {navItems.slice(0, 5).map((item) => {
             const isActive = pathname === item.href || 
@@ -170,7 +171,7 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
 
       {/* Floating Action Button - Mobile */}
       <motion.button
-        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg lg:hidden"
+        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg lg:hidden mb-[calc(env(safe-area-inset-bottom,0px)+1rem)]"
         onClick={() => openQuickAdd('task')}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}

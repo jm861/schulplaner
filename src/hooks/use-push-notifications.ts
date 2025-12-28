@@ -40,26 +40,49 @@ export function usePushNotifications() {
     try {
       const registration = await navigator.serviceWorker.ready;
       
+      // Check if already subscribed
+      const existingSubscription = await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        setSubscription(existingSubscription);
+        return existingSubscription;
+      }
+      
       // For now, we'll use local notifications (no push server required)
       // In the future, you can add VAPID keys for web push
-      const sub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        // applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) // Add if you want web push
-      });
+      // Note: Without VAPID key, some browsers may not allow subscription
+      try {
+        const sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          // applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) // Add if you want web push
+        });
 
-      setSubscription(sub);
-      
-      // Store subscription in localStorage for now
-      // In production, send to your backend
-      localStorage.setItem('push-subscription', JSON.stringify({
-        endpoint: sub.endpoint,
-        keys: {
-          p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh')!))),
-          auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth')!))),
-        },
-      }));
+        setSubscription(sub);
+        
+        // Store subscription in localStorage for now
+        // In production, send to your backend
+        const subscriptionData = {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh')!))),
+            auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth')!))),
+          },
+        };
+        localStorage.setItem('push-subscription', JSON.stringify(subscriptionData));
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[push] Subscription successful:', subscriptionData);
+        }
 
-      return sub;
+        return sub;
+      } catch (pushError: any) {
+        // If push subscription fails (e.g., no VAPID key), we can still use local notifications
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[push] Push subscription failed, using local notifications only:', pushError);
+        }
+        // Still allow local notifications to work
+        setSubscription(null);
+        return null;
+      }
     } catch (error) {
       console.error('[push] Subscription failed:', error);
       throw error;

@@ -65,7 +65,10 @@ export default function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
   const { user, logout } = useAuth();
   const { hasDemoData, removeDemoData } = useWeeklyPlan();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  
+  // next-themes: resolvedTheme gives us the actual theme (light/dark) even when theme is 'system'
+  const currentTheme = (theme === 'system' ? resolvedTheme : theme) || 'system';
   const { teachers, addTeacher, updateTeacher, updateTeacherCourses, deleteTeacher } = useTeachers();
   const { courses, getCoursesByIds } = useCourses();
   const { isSupported, permission, subscribe, unsubscribe, subscription, sendLocalNotification } = usePushNotifications();
@@ -375,7 +378,7 @@ export default function SettingsPage() {
                   { value: 'light' as const, label: t('common.light') },
                   { value: 'dark' as const, label: t('common.dark') },
                 ]}
-                value={currentTheme}
+                value={theme || 'system'}
                 onChange={(value) => setTheme(value)}
                 className="w-full"
               />
