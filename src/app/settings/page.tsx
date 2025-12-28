@@ -66,9 +66,6 @@ export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { hasDemoData, removeDemoData } = useWeeklyPlan();
   const { theme, setTheme, resolvedTheme } = useTheme();
-  
-  // next-themes: resolvedTheme gives us the actual theme (light/dark) even when theme is 'system'
-  const currentTheme = (theme === 'system' ? resolvedTheme : theme) || 'system';
   const { teachers, addTeacher, updateTeacher, updateTeacherCourses, deleteTeacher } = useTeachers();
   const { courses, getCoursesByIds } = useCourses();
   const { isSupported, permission, subscribe, unsubscribe, subscription, sendLocalNotification } = usePushNotifications();
