@@ -23,6 +23,42 @@ import { Teacher } from '@/types/teachers';
 import { HolidaysSection } from '@/components/holidays/holidays-section';
 import { Settings, User, Bell, Sparkles, Globe, Moon, LogOut, Users, Trash2, Edit2 } from 'lucide-react';
 
+// Theme Select Component with hydration safety
+function ThemeSelect({ 
+  theme, 
+  setTheme, 
+  t 
+}: { 
+  theme: string | undefined; 
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  t: (key: string) => string;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="w-full rounded-xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-gray-800 h-10" />
+    );
+  }
+
+  return (
+    <SegmentedControl
+      options={[
+        { value: 'system' as const, label: t('settings.themeSystem') },
+        { value: 'light' as const, label: t('common.light') },
+        { value: 'dark' as const, label: t('common.dark') },
+      ]}
+      value={theme || 'system'}
+      onChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
+      className="w-full"
+    />
+  );
+}
+
 type NotificationSetting = {
   label: string;
   description: string;
@@ -384,18 +420,7 @@ export default function SettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="w-full">
-              <SegmentedControl
-                options={[
-                  { value: 'system' as const, label: t('settings.themeSystem') },
-                  { value: 'light' as const, label: t('common.light') },
-                  { value: 'dark' as const, label: t('common.dark') },
-                ]}
-                value={theme || 'system'}
-                onChange={(value) => setTheme(value)}
-                className="w-full"
-              />
-            </div>
+            <ThemeSelect theme={theme} setTheme={setTheme} t={t} />
           </CardContent>
         </Card>
       </div>
