@@ -368,15 +368,18 @@ export default function SettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <SegmentedControl
-              options={[
-                { value: 'system' as const, label: t('settings.themeSystem') },
-                { value: 'light' as const, label: t('common.light') },
-                { value: 'dark' as const, label: t('common.dark') },
-              ]}
-              value={theme}
-              onChange={(value) => setTheme(value)}
-            />
+            <div className="w-full">
+              <SegmentedControl
+                options={[
+                  { value: 'system' as const, label: t('settings.themeSystem') },
+                  { value: 'light' as const, label: t('common.light') },
+                  { value: 'dark' as const, label: t('common.dark') },
+                ]}
+                value={theme}
+                onChange={(value) => setTheme(value)}
+                className="w-full"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

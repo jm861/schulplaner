@@ -42,7 +42,7 @@ export function SegmentedControl<T = string>({
   return (
     <div
       className={cn(
-        'relative inline-flex rounded-xl bg-gray-100 p-1 dark:bg-gray-800',
+        'relative inline-flex w-full rounded-xl bg-gray-100 p-1 dark:bg-gray-800',
         className
       )}
       role="tablist"
@@ -51,7 +51,7 @@ export function SegmentedControl<T = string>({
       {selectedOption && (
         <motion.div
           layoutId="segmented-control-indicator"
-          className="absolute rounded-lg bg-white shadow-sm dark:bg-gray-700"
+          className="absolute rounded-lg bg-white shadow-sm dark:bg-gray-700 dark:shadow-gray-900/50"
           style={{
             width: `calc(${100 / options.length}% - 0.25rem)`,
             height: 'calc(100% - 0.5rem)',
@@ -77,7 +77,7 @@ export function SegmentedControl<T = string>({
             aria-selected={isSelected}
             onClick={() => onChange(option.value)}
             className={cn(
-              'relative z-10 flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
+              'relative z-10 flex flex-1 items-center justify-center gap-2 rounded-lg font-medium transition-colors',
               sizeStyles[size],
               isSelected
                 ? 'text-gray-900 dark:text-white'
