@@ -1,6 +1,7 @@
 /**
  * Page Transition Component
  * Provides smooth page transitions using Framer Motion
+ * Ensures pages never disappear during navigation
  */
 
 'use client';
@@ -9,27 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { type ReactNode } from 'react';
 
-const pageVariants = {
-  initial: {
-    opacity: 0,
-    y: 8,
-  },
-  animate: {
-    opacity: 1,
-    y: 0,
-  },
-  exit: {
-    opacity: 0,
-    y: -8,
-  },
-};
-
-const pageTransition = {
-  type: 'tween',
-  ease: [0.4, 0, 0.2, 1],
-  duration: 0.2,
-};
-
 export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
@@ -37,13 +17,15 @@ export function PageTransition({ children }: { children: ReactNode }) {
     <AnimatePresence mode="sync" initial={false}>
       <motion.div
         key={pathname}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={pageVariants}
-        transition={pageTransition}
-        className="relative min-h-full w-full"
-        style={{ willChange: 'opacity, transform' }}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{
+          type: 'tween',
+          ease: [0.4, 0, 0.2, 1],
+          duration: 0.2,
+        }}
+        className="relative w-full min-h-screen"
       >
         {children}
       </motion.div>
