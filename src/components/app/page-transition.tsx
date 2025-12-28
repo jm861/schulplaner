@@ -34,7 +34,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="sync" initial={false}>
       <motion.div
         key={pathname}
         initial="initial"
@@ -42,7 +42,8 @@ export function PageTransition({ children }: { children: ReactNode }) {
         exit="exit"
         variants={pageVariants}
         transition={pageTransition}
-        className="w-full"
+        className="relative min-h-full w-full"
+        style={{ willChange: 'opacity, transform' }}
       >
         {children}
       </motion.div>
