@@ -239,6 +239,7 @@ body > .mobile-bottom-nav {
     transform: none !important;
     max-width: 100vw !important;
     overflow-x: hidden !important;
+    width: 100vw !important;
   }
   
   /* Ensure the main container doesn't interfere */

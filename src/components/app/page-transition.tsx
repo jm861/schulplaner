@@ -16,16 +16,18 @@ export function PageTransition({ children }: { children: ReactNode }) {
   return (
     <motion.div
       key={pathname}
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        type: 'tween',
-        ease: [0.4, 0, 0.2, 1],
-        duration: 0.2,
+        type: 'spring',
+        stiffness: 300,
+        damping: 30,
+        mass: 0.8,
       }}
       className="relative w-full min-h-screen"
+      style={{ willChange: 'opacity, transform' }}
     >
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {children}
       </div>
     </motion.div>
