@@ -46,113 +46,6 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { openCommandPalette, openQuickAdd } = useAppStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mainRef = useRef<HTMLElement>(null);
-
-  // #region agent log
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const container = containerRef.current;
-    const main = mainRef.current;
-    const sidebar = document.querySelector('aside');
-    const bottomNav = document.querySelector('nav[class*="fixed bottom-0"]');
-    const fab = document.querySelector('button[class*="fixed bottom-20"]');
-    
-    const checkLayout = () => {
-      const viewportWidth = window.innerWidth;
-      const scrollWidth = document.documentElement.scrollWidth;
-      const htmlWidth = document.documentElement.clientWidth;
-      const bodyWidth = document.body.clientWidth;
-      const htmlRect = document.documentElement.getBoundingClientRect();
-      const bodyRect = document.body.getBoundingClientRect();
-      
-      const data: any = {
-        viewportWidth,
-        scrollWidth,
-        htmlWidth,
-        bodyWidth,
-        htmlRight: htmlRect.right,
-        bodyRight: bodyRect.right,
-        pathname,
-      };
-      
-      let containerRect: DOMRect | null = null;
-      let mainRect: DOMRect | null = null;
-      let sidebarRect: DOMRect | null = null;
-      
-      if (container) {
-        containerRect = container.getBoundingClientRect();
-        data.containerWidth = containerRect.width;
-        data.containerRight = containerRect.right;
-        data.containerLeft = containerRect.left;
-      }
-      
-      if (main) {
-        mainRect = main.getBoundingClientRect();
-        data.mainWidth = mainRect.width;
-        data.mainRight = mainRect.right;
-        data.mainLeft = mainRect.left;
-      }
-      
-      if (sidebar) {
-        sidebarRect = sidebar.getBoundingClientRect();
-        data.sidebarWidth = sidebarRect.width;
-        data.sidebarRight = sidebarRect.right;
-        data.sidebarLeft = sidebarRect.left;
-      }
-      
-      if (bottomNav) {
-        const navRect = bottomNav.getBoundingClientRect();
-        data.bottomNavWidth = navRect.width;
-        data.bottomNavRight = navRect.right;
-        data.bottomNavLeft = navRect.left;
-      }
-      
-      if (fab) {
-        const fabRect = fab.getBoundingClientRect();
-        data.fabWidth = fabRect.width;
-        data.fabRight = fabRect.right;
-        data.fabLeft = fabRect.left;
-      }
-      
-      // Console log for user to share
-      if (scrollWidth > viewportWidth || (containerRect && containerRect.right > viewportWidth) || (mainRect && mainRect.right > viewportWidth) || (sidebarRect && sidebarRect.right > viewportWidth)) {
-        console.error('🔴 OVERFLOW DETECTED:', {
-          viewportWidth,
-          scrollWidth,
-          overflow: scrollWidth - viewportWidth,
-          container: containerRect ? { width: containerRect.width, right: containerRect.right } : null,
-          main: mainRect ? { width: mainRect.width, right: mainRect.right } : null,
-          sidebar: sidebarRect ? { width: sidebarRect.width, right: sidebarRect.right } : null,
-          pathname,
-          timestamp: new Date().toISOString(),
-        });
-      }
-      
-      fetch('http://127.0.0.1:7242/ingest/1d09eedf-cddd-4c68-a262-7d0bbd80b9b8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-shell-v2.tsx:useEffect',message:'Layout dimensions check',data,timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-      
-      if (scrollWidth > viewportWidth) {
-        fetch('http://127.0.0.1:7242/ingest/1d09eedf-cddd-4c68-a262-7d0bbd80b9b8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-shell-v2.tsx:useEffect',message:'OVERFLOW DETECTED',data:{...data,overflow:scrollWidth-viewportWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-      }
-    };
-    
-    checkLayout();
-    const interval = setInterval(checkLayout, 50);
-    const timeout = setTimeout(() => clearInterval(interval), 2000);
-    
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [pathname]);
-  // #endregion
-
-  // #region agent log
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    fetch('http://127.0.0.1:7242/ingest/1d09eedf-cddd-4c68-a262-7d0bbd80b9b8',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app-shell-v2.tsx:mount',message:'AppShellV2 mounted',data:{pathname,viewportWidth:window.innerWidth,scrollWidth:document.documentElement.scrollWidth,isClient:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  }, [pathname]);
-  // #endregion
 
   // Routes that use PlannerShell directly and should bypass AppShellV2
   const PLANNER_SHELL_ROUTES = [
@@ -189,7 +82,6 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
         }}
       />
       <div 
-        ref={containerRef} 
         className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-gray-50 dark:bg-gray-950 relative z-10" 
         style={{ 
           width: '100vw', 
@@ -278,7 +170,6 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
 
         {/* Main Content */}
         <main 
-          ref={mainRef} 
           className="flex-1 min-w-0 overflow-x-hidden bg-gray-50 dark:bg-gray-950"
           style={{
             maxWidth: '100%',
