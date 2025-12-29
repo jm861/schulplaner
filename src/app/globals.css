@@ -97,16 +97,16 @@
 /* Ensure dark mode is applied to html element */
 html.dark {
   color-scheme: dark;
-  background-color: hsl(var(--background)) !important;
+  background-color: #030712 !important;
 }
 
 html:not(.dark) {
   color-scheme: light;
-  background-color: hsl(var(--background)) !important;
+  background-color: #f9fafb !important;
 }
 
 body {
-  background: hsl(var(--background)) !important;
+  background: #f9fafb !important;
   color: hsl(var(--foreground));
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -131,24 +131,34 @@ html {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  overflow-y: auto;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
   transition: background-color 0.2s ease;
-  /* Use theme background color to match AppShell */
-  background-color: hsl(var(--background)) !important;
+  /* Use gray-50 background to match AppShell exactly */
+  background-color: #f9fafb !important;
+}
+
+html.dark {
+  background-color: #030712 !important;
 }
 
 body {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
   margin: 0;
   padding: 0;
-  /* Use theme background color to match AppShell */
-  background-color: hsl(var(--background)) !important;
+  /* Use gray-50 background to match AppShell exactly */
+  background-color: #f9fafb !important;
   /* Ensure body never creates horizontal scroll */
   min-width: 0;
+}
+
+body.dark {
+  background-color: #030712 !important;
 }
 
 /* Fix for iOS Safari fixed positioning issue with bottom navigation */

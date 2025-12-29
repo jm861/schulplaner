@@ -180,11 +180,12 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
     <>
       {/* Full viewport background wrapper to prevent gray bar */}
       <div 
-        className="fixed inset-0 bg-gray-50 dark:bg-gray-950 pointer-events-none z-0"
+        className="fixed inset-0 pointer-events-none z-0"
         style={{
           width: '100vw',
           height: '100vh',
           overflow: 'hidden',
+          backgroundColor: '#f9fafb',
         }}
       />
       <div 
