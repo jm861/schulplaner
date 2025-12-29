@@ -18,12 +18,14 @@ import {
   FileText,
   BookOpen,
   Settings,
+  Shield,
   Plus,
   Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { PageTransition } from './page-transition';
+import { useAuth } from '@/contexts/auth-context';
 
 interface NavItem {
   href: string;
@@ -32,7 +34,7 @@ interface NavItem {
   badge?: number;
 }
 
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: <Home className="h-5 w-5" /> },
   { href: '/tasks', label: 'Aufgaben', icon: <CheckSquare className="h-5 w-5" /> },
   { href: '/calendar', label: 'Kalender', icon: <Calendar className="h-5 w-5" /> },
@@ -45,14 +47,20 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { openCommandPalette, openQuickAdd } = useAppStore();
+  const { isAdmin, isOperator } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Build navigation items dynamically based on user role
+  const navItems: NavItem[] = [
+    ...baseNavItems,
+    ...((isAdmin || isOperator) ? [{ href: '/admin', label: 'Admin', icon: <Shield className="h-5 w-5" /> } as NavItem] : []),
+  ];
 
   // Routes that use PlannerShell directly and should bypass AppShellV2
   const PLANNER_SHELL_ROUTES = [
     '/study-plan',
     '/chat',
     '/substitution-plan',
-    '/admin',
   ];
 
   // Check if current route should use AppShell
