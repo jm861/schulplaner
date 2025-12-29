@@ -15,15 +15,12 @@ export function PageTransition({ children }: { children: ReactNode }) {
   return (
     <div
       key={pathname}
-      className="relative w-full min-h-screen overflow-x-hidden bg-gray-50 dark:bg-gray-950"
+      className="relative w-full min-h-full overflow-x-hidden bg-gray-50 dark:bg-gray-950"
       style={{ 
         maxWidth: '100%',
         width: '100%',
         minWidth: 0,
-        contain: 'layout style paint',
-        position: 'relative',
-        left: 0,
-        right: 0,
+        minHeight: '100%',
       }}
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

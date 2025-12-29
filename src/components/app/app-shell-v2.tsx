@@ -79,30 +79,13 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* Full viewport background wrapper to prevent gray bar */}
       <div 
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          width: '100vw',
-          height: '100vh',
-          overflow: 'hidden',
-          backgroundColor: '#f9fafb',
-        }}
-      />
-      <div 
-        className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-gray-50 dark:bg-gray-950 relative z-10" 
+        className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-gray-50 dark:bg-gray-950 relative" 
         style={{ 
           width: '100vw', 
           maxWidth: '100vw', 
           minWidth: 0,
-          contain: 'layout style paint',
-          position: 'relative',
-          left: 0,
-          right: 0,
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-          isolation: 'isolate',
-          overflow: 'hidden',
+          minHeight: '100vh',
         }}
       >
         {/* Sidebar - Desktop */}
@@ -178,13 +161,10 @@ export function AppShellV2({ children }: { children: React.ReactNode }) {
 
         {/* Main Content */}
         <main 
-          className="flex-1 min-w-0 overflow-x-hidden bg-gray-50 dark:bg-gray-950"
+          className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-950"
           style={{
             maxWidth: '100%',
             minWidth: 0,
-            contain: 'layout style paint',
-            position: 'relative',
-            overflow: 'hidden',
             width: '100%',
           }}
         >
