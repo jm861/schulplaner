@@ -62,7 +62,9 @@ export async function POST(req: NextRequest) {
 
     // Check if RESEND_API_KEY is configured
     if (!resendApiKey) {
-      console.error('[forgot-password] RESEND_API_KEY is not configured');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[forgot-password] RESEND_API_KEY is not configured');
+      }
       const errorMessage = 'Email service is not configured. Please contact support.';
       return NextResponse.json(
         {
@@ -78,7 +80,9 @@ export async function POST(req: NextRequest) {
 
     // Validate API key format (Resend keys start with 're_')
     if (!resendApiKey.startsWith('re_')) {
-      console.error('[forgot-password] RESEND_API_KEY has invalid format');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[forgot-password] RESEND_API_KEY has invalid format');
+      }
       const errorMessage = 'Email service configuration is invalid. Please contact support.';
       return NextResponse.json(
         {
@@ -164,11 +168,11 @@ export async function POST(req: NextRequest) {
         errorDetails = { raw: String(emailError) };
       }
       
-      console.error('[forgot-password] Resend API error:', {
-        email: normalizedEmail,
-        error: errorDetails,
-        resetUrl,
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[forgot-password] Resend API error:', {
+          error: errorDetails,
+        });
+      }
 
       // Extract user-friendly error message
       let userMessage = 'Failed to send reset email. Please try again later or contact support.';
@@ -198,7 +202,9 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('[forgot-password] Error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[forgot-password] Error:', error instanceof Error ? error.message : String(error));
+    }
     return NextResponse.json({ error: 'Failed to process request.' }, { status: 500 });
   }
 }

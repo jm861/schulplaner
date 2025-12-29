@@ -1,3 +1,4 @@
+npx tsc --noEmit 2>&1 | grep -E "src/app/api/auth" | head -20
 /**
  * Sheet Component (Bottom Sheet / Side Sheet)
  * Apple-like sheet with backdrop and smooth animations
@@ -63,52 +64,50 @@ export function Sheet({
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <AnimatePresence>
-          {open && (
-            <>
-              {/* Backdrop */}
-              <DialogPrimitive.Overlay asChild>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-                />
-              </DialogPrimitive.Overlay>
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop */}
+            <DialogPrimitive.Overlay asChild>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+              />
+            </DialogPrimitive.Overlay>
 
-              {/* Sheet Content */}
-              <DialogPrimitive.Content asChild>
-                <motion.div
-                  initial={variants.initial}
-                  animate={variants.animate}
-                  exit={variants.exit}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 300,
-                    damping: 30,
-                  }}
-                  className={cn(
-                    'fixed z-50 bg-white dark:bg-gray-900 shadow-2xl',
-                    isBottom
-                      ? 'bottom-0 left-0 right-0 rounded-t-3xl border-t border-gray-200 dark:border-gray-800'
-                      : side === 'right'
-                      ? 'top-0 right-0 bottom-0 rounded-l-3xl border-l border-gray-200 dark:border-gray-800'
-                      : side === 'left'
-                      ? 'top-0 left-0 bottom-0 rounded-r-3xl border-r border-gray-200 dark:border-gray-800'
-                      : 'top-0 left-0 right-0 rounded-b-3xl border-b border-gray-200 dark:border-gray-800',
-                    !isBottom && sizeClasses[size],
-                    isBottom && 'max-h-[90vh]'
-                  )}
-                >
-                  {children}
-                </motion.div>
-              </DialogPrimitive.Content>
-            </>
-          )}
-        </AnimatePresence>
-      </DialogPrimitive.Portal>
+            {/* Sheet Content */}
+            <DialogPrimitive.Content asChild>
+              <motion.div
+                initial={variants.initial}
+                animate={variants.animate}
+                exit={variants.exit}
+                transition={{
+                  type: 'spring',
+                  stiffness: 300,
+                  damping: 30,
+                }}
+                className={cn(
+                  'fixed z-50 bg-white dark:bg-gray-900 shadow-2xl',
+                  isBottom
+                    ? 'bottom-0 left-0 right-0 rounded-t-3xl border-t border-gray-200 dark:border-gray-800'
+                    : side === 'right'
+                    ? 'top-0 right-0 bottom-0 rounded-l-3xl border-l border-gray-200 dark:border-gray-800'
+                    : side === 'left'
+                    ? 'top-0 left-0 bottom-0 rounded-r-3xl border-r border-gray-200 dark:border-gray-800'
+                    : 'top-0 left-0 right-0 rounded-b-3xl border-b border-gray-200 dark:border-gray-800',
+                  !isBottom && sizeClasses[size],
+                  isBottom && 'max-h-[90vh]'
+                )}
+              >
+                {children}
+              </motion.div>
+            </DialogPrimitive.Content>
+          </>
+        )}
+      </AnimatePresence>
     </DialogPrimitive.Root>
   );
 }

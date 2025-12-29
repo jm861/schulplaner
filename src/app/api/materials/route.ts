@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import PDFParser from 'pdf2json';
 
-import { upstash } from '@/lib/upstash';
+import { kv } from '@/lib/kv';
 import { MaterialRecord } from '@/types/materials';
 
 export const runtime = 'nodejs';
@@ -142,12 +142,12 @@ async function extractTextFromImage(buffer: Buffer, mimeType: string) {
 }
 
 async function getAllMaterials(): Promise<MaterialRecord[]> {
-  if (!upstash.isConfigured()) {
+  if (!kv.isConfigured()) {
     return [];
   }
 
   try {
-    const existing = await upstash.get<MaterialRecord[]>(MATERIALS_KEY);
+    const existing = await kv.get<MaterialRecord[]>(MATERIALS_KEY);
     return existing ?? [];
   } catch (error) {
     console.error('[materials] Failed to load existing materials:', error);
@@ -156,10 +156,10 @@ async function getAllMaterials(): Promise<MaterialRecord[]> {
 }
 
 async function saveMaterials(records: MaterialRecord[]) {
-  if (!upstash.isConfigured()) {
+  if (!kv.isConfigured()) {
     throw new Error('Upstash Redis is not configured.');
   }
-  await upstash.set(MATERIALS_KEY, records);
+  await kv.set(MATERIALS_KEY, records);
 }
 
 export async function GET(req: NextRequest) {
@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!upstash.isConfigured()) {
+  if (!kv.isConfigured()) {
     return NextResponse.json(
       { error: 'Server storage not configured. Please set Upstash credentials.' },
       { status: 500 },

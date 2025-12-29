@@ -20,11 +20,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 });
     }
 
-    console.log('[reset-password] Attempting to validate token:', { token: token.substring(0, 10) + '...' });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[reset-password] Attempting to validate token:', { token: token.substring(0, 10) + '...' });
+    }
     
     const record = await validatePasswordResetToken(token);
     if (!record) {
-      console.error('[reset-password] Token validation failed');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[reset-password] Token validation failed');
+      }
       return NextResponse.json(
         { 
           error: 'Reset link is invalid or expired.',
@@ -58,7 +62,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[reset-password] Error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[reset-password] Error:', error instanceof Error ? error.message : String(error));
+    }
     return NextResponse.json({ error: 'Failed to reset password.' }, { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { upstash } from '@/lib/upstash';
+import { kv } from '@/lib/kv';
 
 export type PasswordResetRecord = {
   token: string;
@@ -19,9 +19,9 @@ function buildKey(token: string) {
 }
 
 async function saveRecord(record: PasswordResetRecord): Promise<void> {
-  if (upstash.isConfigured()) {
+  if (kv.isConfigured()) {
     try {
-      await upstash.set(buildKey(record.token), record);
+      await kv.set(buildKey(record.token), record);
       return;
     } catch (error) {
       console.error('[password-reset] Failed to persist token to Upstash:', error);
@@ -32,9 +32,9 @@ async function saveRecord(record: PasswordResetRecord): Promise<void> {
 }
 
 async function deleteRecord(token: string): Promise<void> {
-  if (upstash.isConfigured()) {
+  if (kv.isConfigured()) {
     try {
-      await upstash.del(buildKey(token));
+      await kv.del(buildKey(token));
       return;
     } catch (error) {
       console.error('[password-reset] Failed to delete token from Upstash:', error);
@@ -47,9 +47,9 @@ async function deleteRecord(token: string): Promise<void> {
 async function readRecord(token: string): Promise<PasswordResetRecord | null> {
   let record: PasswordResetRecord | null = null;
 
-  if (upstash.isConfigured()) {
+  if (kv.isConfigured()) {
     try {
-      record = await upstash.get<PasswordResetRecord>(buildKey(token));
+      record = await kv.get<PasswordResetRecord>(buildKey(token));
     } catch (error) {
       console.error('[password-reset] Failed to read token from Upstash:', error);
     }
@@ -84,7 +84,7 @@ export async function createPasswordResetToken(email: string): Promise<PasswordR
     token,
     email: email.toLowerCase(),
     expiresAt: new Date(record.expiresAt).toISOString(),
-    usingUpstash: upstash.isConfigured(),
+    usingKv: kv.isConfigured(),
   });
 
   await saveRecord(record);
@@ -108,7 +108,7 @@ export async function validatePasswordResetToken(token: string): Promise<Passwor
   
   console.log('[password-reset] Validating token:', {
     token,
-    usingUpstash: upstash.isConfigured(),
+    usingKv: kv.isConfigured(),
   });
   
   const record = await readRecord(token);

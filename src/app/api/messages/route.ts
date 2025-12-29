@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { upstash } from '@/lib/upstash';
+import { kv } from '@/lib/kv';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -29,11 +29,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    if (!upstash.isConfigured()) {
+    if (!kv.isConfigured()) {
       return NextResponse.json({ messages: [], conversations: [] });
     }
 
-    const allMessages = await upstash.get<ChatMessage[]>(MESSAGES_KEY) || [];
+    const allMessages = await kv.get<ChatMessage[]>(MESSAGES_KEY) || [];
 
     if (otherUserId) {
       // Get conversation between two users
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/messages - Send a message
 export async function POST(req: NextRequest) {
-  if (!upstash.isConfigured()) {
+  if (!kv.isConfigured()) {
     return NextResponse.json(
       { error: 'Server storage not configured. Please set Upstash credentials.' },
       { status: 500 }
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       read: false,
     };
 
-    const allMessages = (await upstash.get<ChatMessage[]>(MESSAGES_KEY)) || [];
+    const allMessages = (await kv.get<ChatMessage[]>(MESSAGES_KEY)) || [];
     allMessages.push(newMessage);
 
     // Keep only last 1000 messages per conversation pair
@@ -155,9 +155,9 @@ export async function POST(req: NextRequest) {
 
       // Remove old messages
       const filtered = allMessages.filter((msg) => !toRemove.find((m) => m.id === msg.id));
-      await upstash.set(MESSAGES_KEY, filtered);
+      await kv.set(MESSAGES_KEY, filtered);
     } else {
-      await upstash.set(MESSAGES_KEY, allMessages);
+      await kv.set(MESSAGES_KEY, allMessages);
     }
 
     return NextResponse.json({ message: newMessage });
@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/messages - Mark messages as read
 export async function PATCH(req: NextRequest) {
-  if (!upstash.isConfigured()) {
+  if (!kv.isConfigured()) {
     return NextResponse.json(
       { error: 'Server storage not configured.' },
       { status: 500 }
@@ -191,7 +191,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const allMessages = (await upstash.get<ChatMessage[]>(MESSAGES_KEY)) || [];
+    const allMessages = (await kv.get<ChatMessage[]>(MESSAGES_KEY)) || [];
     const updated = allMessages.map((msg) => {
       if (msg.receiverId === userId && msg.senderId === otherUserId && !msg.read) {
         return { ...msg, read: true };
@@ -199,7 +199,7 @@ export async function PATCH(req: NextRequest) {
       return msg;
     });
 
-    await upstash.set(MESSAGES_KEY, updated);
+    await kv.set(MESSAGES_KEY, updated);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,4 +1,4 @@
-import { upstash } from '@/lib/upstash';
+import { kv } from '@/lib/kv';
 
 export type StoredUser = {
   id: string;
@@ -22,16 +22,16 @@ export const DEFAULT_USERS: StoredUser[] = [
 const USERS_KEY = 'schulplaner:users';
 
 export async function getStoredUsers(): Promise<StoredUser[]> {
-  if (!upstash.isConfigured()) {
+  if (!kv.isConfigured()) {
     return DEFAULT_USERS;
   }
 
   try {
-    const users = await upstash.get<StoredUser[]>(USERS_KEY);
+    const users = await kv.get<StoredUser[]>(USERS_KEY);
     if (users && Array.isArray(users) && users.length > 0) {
       return users;
     }
-    await upstash.set(USERS_KEY, DEFAULT_USERS);
+    await kv.set(USERS_KEY, DEFAULT_USERS);
     return DEFAULT_USERS;
   } catch (error) {
     console.error('[users-server] getStoredUsers fallback to defaults:', error);
@@ -40,12 +40,12 @@ export async function getStoredUsers(): Promise<StoredUser[]> {
 }
 
 export async function saveStoredUsers(users: StoredUser[]): Promise<void> {
-  if (!upstash.isConfigured()) {
+  if (!kv.isConfigured()) {
     return;
   }
 
   try {
-    await upstash.set(USERS_KEY, users);
+    await kv.set(USERS_KEY, users);
   } catch (error) {
     console.error('[users-server] saveStoredUsers error:', error);
   }

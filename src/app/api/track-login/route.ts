@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { upstash } from '@/lib/upstash';
+import { kv } from '@/lib/kv';
 
 type User = {
   id: string;
@@ -31,13 +31,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Get users from Upstash or return (if not configured, client-side will handle it)
-    if (!upstash.isConfigured()) {
+    if (!kv.isConfigured()) {
       // Upstash not configured - return success but don't track (localStorage will handle it)
       return NextResponse.json({ success: true, message: 'Upstash not configured, using localStorage' });
     }
 
     try {
-      let users = await upstash.get<User[]>(USERS_KEY);
+      let users = await kv.get<User[]>(USERS_KEY);
       
       // Initialize empty array if KV is empty
       if (!users || !Array.isArray(users)) {
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         users.push(newUser);
       }
       
-      await upstash.set(USERS_KEY, users);
+      await kv.set(USERS_KEY, users);
       
       const updatedUser = users.find((u) => u.id === userId || u.email === email);
       

@@ -104,9 +104,10 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     } catch (err) {
-      console.error('[login] Login error:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-      setError(t('auth.invalidCredentials') + (errorMsg ? ` (${errorMsg})` : ''));
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[login] Login failed:', err instanceof Error ? err.message : 'Unknown error');
+      }
+      setError(t('auth.invalidCredentials'));
       setIsLoading(false);
     }
   }

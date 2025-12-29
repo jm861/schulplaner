@@ -93,22 +93,21 @@ export default function RegisterPage() {
         await new Promise(resolve => setTimeout(resolve, 100));
         const retrySuccess = writeJSON(USERS_STORAGE_KEY, users);
         if (!retrySuccess) {
-          console.error('[register] Failed to write user to localStorage after retry');
+          console.warn('[register] Failed to write user to localStorage after retry');
         }
       }
       
       // Verify user was actually saved
       const verifyUsers = readJSON<Array<User & { password: string }>>(USERS_STORAGE_KEY, []);
       const userSaved = verifyUsers.some(u => u.email.toLowerCase().trim() === normalizedEmail);
-      console.log('[register] User saved verification:', {
-        writeSuccess,
-        userSaved,
-        totalUsers: verifyUsers.length,
-        savedEmail: normalizedEmail
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[register] User saved:', { writeSuccess, userSaved, totalUsers: verifyUsers.length });
+      }
       
       if (!userSaved) {
-        console.error('[register] User was not saved correctly!');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[register] User was not saved correctly');
+        }
         setError('Fehler beim Speichern des Benutzers. Bitte versuche es erneut.');
         setIsLoading(false);
         return;
@@ -127,11 +126,6 @@ export default function RegisterPage() {
       }
 
       // Auto-login the new user - use normalized email and trimmed password
-      console.log('[register] Attempting auto-login with:', {
-        email: normalizedEmail,
-        passwordLength: trimmedPassword.length
-      });
-      
       const success = await login(normalizedEmail, trimmedPassword);
       setIsLoading(false);
 
@@ -140,11 +134,15 @@ export default function RegisterPage() {
         await new Promise(resolve => setTimeout(resolve, 200));
         router.push('/welcome');
       } else {
-        console.error('[register] Auto-login failed after registration');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[register] Auto-login failed after registration');
+        }
         setError('Registrierung erfolgreich, aber automatische Anmeldung fehlgeschlagen. Bitte melde dich manuell an.');
       }
     } catch (error) {
-      console.error('[register] Registration failed:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[register] Registration failed:', error instanceof Error ? error.message : 'Unknown error');
+      }
       setIsLoading(false);
       setError(t('auth.registrationFailed'));
     }

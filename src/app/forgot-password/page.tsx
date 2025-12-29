@@ -41,8 +41,9 @@ export default function ForgotPasswordPage() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
-      // Log full error for debugging
-      console.error('[forgot-password] Error:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[forgot-password] Error:', errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { upstash } from '@/lib/upstash';
+import { kv } from '@/lib/kv';
 import type { DayData } from '@/types/schedule';
 
 const BASE_KEY = 'schulplaner:schedule';
@@ -14,12 +14,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'userId is required' }, { status: 400 });
   }
 
-  if (!upstash.isConfigured()) {
+  if (!kv.isConfigured()) {
     return NextResponse.json({ days: null });
   }
 
   try {
-    const days = await upstash.get<DayData[]>(buildKey(userId));
+    const days = await kv.get<DayData[]>(buildKey(userId));
     return NextResponse.json({ days: days ?? null });
   } catch (error) {
     console.error('[schedule] Failed to load schedule from Upstash:', error);
@@ -34,11 +34,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'userId and days are required' }, { status: 400 });
     }
 
-    if (!upstash.isConfigured()) {
+    if (!kv.isConfigured()) {
       return NextResponse.json({ error: 'Upstash is not configured' }, { status: 500 });
     }
 
-    await upstash.set(buildKey(body.userId), body.days);
+    await kv.set(buildKey(body.userId), body.days);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[schedule] Failed to save schedule:', error);
